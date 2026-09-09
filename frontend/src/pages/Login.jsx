@@ -1,3 +1,5 @@
+import icon from '../assets/icon.svg'
+
 function Login() {
     return (
         <div className="login-page">
@@ -5,7 +7,9 @@ function Login() {
             <header className="login-header">
 
                 <div className="brand">
-                    <span className="brand-icon">⌑</span>
+                    <span className="brand-icon">
+                        <img src={icon} alt="icon" />
+                    </span>
                     <span>AutoGrade</span>
                 </div>
 

@@ -32,7 +32,7 @@ Docker Compose runs the `frontend`, `backend`, and `db` services. Django connect
 ## Prerequisites
 
 - Git
-- Docker Desktop with Docker Compose
+- Docker Desktop with Docker Compose, if not [click here](https://docs.docker.com/desktop/setup/install/windows-install/)
 
 Verify the installation:
 
@@ -46,7 +46,7 @@ docker compose version
 Clone the repository and enter the project root:
 
 ```bash
-git clone <REPOSITORY_URL>
+git clone https://github.com/code-with-me-an/AI-Assisted-Answer-Sheet-Evaluation-System.git
 cd AI-Assisted-Answer-Sheet-Evaluation-System
 ```
 

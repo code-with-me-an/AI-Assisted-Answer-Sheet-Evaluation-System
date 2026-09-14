@@ -1,0 +1,443 @@
+.past-exams-page {
+    width: 100%;
+}
+
+/* =========================
+   Statistics
+========================= */
+
+.past-exams-stats {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 18px;
+    margin-bottom: 28px;
+}
+
+.past-stat-card {
+    background: #ffffff;
+    border: 1px solid #e2e5f0;
+    border-radius: 14px;
+    padding: 20px 22px;
+    transition: box-shadow 0.2s ease;
+}
+
+.past-stat-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.past-stat-card.past-stat-highlight {
+    border-color: #93c5fd;
+}
+
+.past-stat-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 8px;
+}
+
+.past-stat-value {
+    font-size: 36px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1;
+}
+
+.past-stat-value span {
+    font-size: 22px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+/* =========================
+   Table Card
+========================= */
+
+.past-exams-table-card {
+    background: #ffffff;
+    border: 1px solid #e2e5f0;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+/* =========================
+   Toolbar
+========================= */
+
+.past-exams-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 22px;
+    border-bottom: 1px solid #e2e5f0;
+    gap: 12px;
+}
+
+.past-search-box {
+    position: relative;
+    width: 100%;
+    max-width: 360px;
+}
+
+.past-search-box svg {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    stroke: #9ca3af;
+    pointer-events: none;
+}
+
+.past-search-box input {
+    width: 100%;
+    padding: 11px 14px 11px 42px;
+    border: 1.5px solid #e2e5f0;
+    border-radius: 10px;
+    background: #fafbfd;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.past-search-box input:focus {
+    border-color: #1e3a5f;
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.08);
+    background: #ffffff;
+}
+
+.past-filter-wrapper {
+    position: relative;
+}
+
+.past-filter-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border: 1.5px solid #e2e5f0;
+    border-radius: 10px;
+    background: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.past-filter-btn:hover {
+    border-color: #1e3a5f;
+    background: #f0f4ff;
+}
+
+.past-filter-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke: #64748b;
+}
+
+/* =========================
+   Filter Dropdown
+========================= */
+
+.past-filter-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 190px;
+    padding: 8px;
+    background: #ffffff;
+    border: 1px solid #e2e5f0;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    z-index: 50;
+}
+
+.past-filter-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #374151;
+}
+
+.past-filter-option:hover {
+    background: #f0f2f8;
+}
+
+.past-filter-option input {
+    width: 15px;
+    height: 15px;
+    accent-color: #1e3a5f;
+}
+
+/* =========================
+   Table
+========================= */
+
+.past-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.past-exams-table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+}
+
+.past-exams-table thead th {
+    padding: 14px 22px;
+    text-align: left;
+    background: #f8f9fc;
+    border-bottom: 1px solid #e2e5f0;
+
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    white-space: nowrap;
+}
+
+.past-exams-table tbody td {
+    padding: 16px 22px;
+    border-bottom: 1px solid #f0f2f8;
+    font-size: 14px;
+    color: #374151;
+    vertical-align: middle;
+}
+
+.past-exams-table tbody tr {
+    transition: background 0.15s ease;
+}
+
+.past-exams-table tbody tr:hover {
+    background: #fafbfd;
+}
+
+.past-exams-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* =========================
+   Exam Information
+========================= */
+
+.exam-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 4px;
+}
+
+.exam-code {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.exam-date {
+    white-space: nowrap;
+    color: #64748b !important;
+}
+
+.exam-number {
+    font-weight: 500;
+    color: #374151;
+}
+
+.exam-percentage {
+    font-weight: 600;
+    color: #0f172a !important;
+}
+
+/* =========================
+   Status Badges
+========================= */
+
+.past-exam-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 8px;
+
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.past-exam-badge svg {
+    width: 12px;
+    height: 12px;
+}
+
+.badge-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.badge-approved {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.badge-modified {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+/* =========================
+   Action Buttons
+========================= */
+
+.past-action-btn {
+    padding: 8px 18px;
+    border-radius: 8px;
+    border: 1.5px solid #e2e5f0;
+    background: #ffffff;
+    color: #1e3a5f;
+
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.past-action-btn:hover {
+    border-color: #1e3a5f;
+    background: #f0f4ff;
+}
+
+.past-action-btn.primary {
+    background: #1e3a5f;
+    border-color: #1e3a5f;
+    color: #ffffff;
+}
+
+.past-action-btn.primary:hover {
+    background: #162d4a;
+}
+
+/* =========================
+   Footer
+========================= */
+
+.past-table-footer {
+    padding: 14px 22px;
+    border-top: 1px solid #e2e5f0;
+    color: #64748b;
+    font-size: 13px;
+}
+
+/* =========================
+   Empty State
+========================= */
+
+.past-empty-state {
+    padding: 40px !important;
+    text-align: center !important;
+    color: #64748b !important;
+}
+
+/* =========================
+   Tablet
+========================= */
+
+@media (max-width: 1023px) and (min-width: 768px) {
+    .past-exams-stats {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .past-stat-value {
+        font-size: 32px;
+    }
+
+    .past-exams-table {
+        min-width: 850px;
+    }
+}
+
+/* =========================
+   Mobile
+========================= */
+
+@media (max-width: 767px) {
+    .past-exams-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .past-stat-card {
+        padding: 16px 18px;
+    }
+
+    .past-stat-value {
+        font-size: 30px;
+    }
+
+    .past-stat-value span {
+        font-size: 18px;
+    }
+
+    .past-exams-toolbar {
+        padding: 14px 16px;
+    }
+
+    .past-search-box {
+        max-width: none;
+    }
+
+    .past-table-wrapper {
+        overflow-x: auto;
+    }
+
+    .past-exams-table thead th {
+        padding: 12px 16px;
+        font-size: 10px;
+    }
+
+    .past-exams-table tbody td {
+        padding: 14px 16px;
+        font-size: 13px;
+    }
+
+    .past-action-btn {
+        padding: 7px 14px;
+        font-size: 12px;
+    }
+
+    .past-table-footer {
+        padding: 12px 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .past-exams-stats {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .past-stat-card:last-child {
+        grid-column: 1 / -1;
+    }
+
+    .past-exams-toolbar {
+        align-items: stretch;
+    }
+
+    .past-filter-btn {
+        flex-shrink: 0;
+    }
+}

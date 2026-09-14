@@ -1,0 +1,42 @@
+.app-layout {
+    min-height: 100vh;
+    background: #f5f6fa;
+}
+
+.main-content {
+    margin-left: 260px;
+    min-height: 100vh;
+    padding: 40px 48px;
+}
+
+@media (min-width: 1400px) {
+    .main-content {
+        padding: 48px 64px;
+    }
+}
+
+@media (max-width: 1399px) {
+    .main-content {
+        padding: 36px 40px;
+    }
+}
+
+@media (max-width: 1023px) {
+    .main-content {
+        margin-left: 220px;
+        padding: 32px;
+    }
+}
+
+@media (max-width: 767px) {
+    .main-content {
+        margin-left: 0;
+        padding: 84px 20px 28px;
+    }
+}
+
+@media (max-width: 480px) {
+    .main-content {
+        padding: 78px 16px 24px;
+    }
+}

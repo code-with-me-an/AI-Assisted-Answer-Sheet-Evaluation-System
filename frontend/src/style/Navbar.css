@@ -1,0 +1,235 @@
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 260px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    padding: 30px 18px 22px;
+    background: #f0f2f8;
+    border-right: 1px solid #e2e5f0;
+}
+
+.sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    margin-bottom: 34px;
+    color: #0f172a;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.sidebar-logo-mark {
+    width: 30px;
+    height: 30px;
+}
+
+.sidebar-profile {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 0 10px;
+    margin-bottom: 30px;
+}
+
+.sidebar-avatar {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #d9dee9;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.sidebar-profile-info {
+    min-width: 0;
+}
+
+.sidebar-profile-info h4 {
+    margin: 0 0 3px;
+    color: #172033;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.sidebar-profile-info p {
+    margin: 0;
+    color: #788397;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.nav-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    border: none;
+    border-radius: 9px;
+    padding: 12px 13px;
+    background: transparent;
+    color: #64748b;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition:
+        background 0.18s ease,
+        color 0.18s ease,
+        transform 0.18s ease;
+}
+
+.nav-item:hover {
+    background: #e7eaf2;
+    color: #0f172a;
+}
+
+.nav-item.active {
+    background: #071a31;
+    color: white;
+}
+
+.nav-icon {
+    width: 21px;
+    height: 21px;
+    flex: 0 0 21px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-icon svg {
+    width: 19px;
+    height: 19px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.nav-item.active .nav-icon svg {
+    stroke: white;
+}
+
+.sidebar-bottom {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.mobile-header {
+    display: none;
+}
+
+.sidebar-overlay {
+    display: none;
+}
+
+@media (max-width: 1023px) and (min-width: 768px) {
+    .sidebar {
+        width: 220px;
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    .sidebar-logo {
+        font-size: 21px;
+    }
+
+    .nav-item {
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 767px) {
+    .mobile-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 62px;
+        z-index: 120;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 18px;
+        background: #ffffff;
+        border-bottom: 1px solid #e2e5f0;
+    }
+
+    .mobile-brand {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: #0f172a;
+        font-size: 21px;
+        font-weight: 700;
+    }
+
+    .mobile-brand-icon {
+        width: 27px;
+        height: 27px;
+    }
+
+    .menu-button {
+        width: 42px;
+        height: 42px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        border: 1px solid #e2e5f0;
+        border-radius: 8px;
+        background: white;
+        cursor: pointer;
+    }
+
+    .menu-button span {
+        width: 19px;
+        height: 2px;
+        background: #0f172a;
+        border-radius: 2px;
+    }
+
+    .sidebar {
+        width: 280px;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: 8px 0 30px rgba(15, 23, 42, 0.08);
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    .sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 90;
+        display: block;
+        border: none;
+        background: rgba(15, 23, 42, 0.28);
+        cursor: pointer;
+    }
+}

@@ -1,0 +1,805 @@
+/* ============================================
+   Students — React port
+   Scoped under .students-page
+   ============================================ */
+
+.students-page {
+    --navy: #1e3a5f;
+    --navy-d: #0f1f3a;
+    --blue: #2563eb;
+    --blue-l: #dbeafe;
+    --blue-s: #eff6ff;
+    --green: #059669;
+    --green-l: #d1fae5;
+    --amber: #d97706;
+    --amber-l: #fef3c7;
+    --red: #ef4444;
+    --red-l: #fee2e2;
+    --purple: #7c3aed;
+    --g50: #f9fafb;
+    --g100: #f3f4f6;
+    --g200: #e5e7eb;
+    --g300: #d1d5db;
+    --g400: #9ca3af;
+    --g500: #6b7280;
+    --g600: #4b5563;
+    --g700: #374151;
+    --g800: #1f2937;
+    --g900: #111827;
+    --brd: #e2e5f0;
+    --sh-s: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --sh-lg: 0 20px 50px rgba(15, 31, 58, 0.18);
+
+    width: 100%;
+    color: var(--g800);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.students-page * {
+    box-sizing: border-box;
+}
+
+.students-page button {
+    font: inherit;
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: inherit;
+}
+
+.students-page input,
+.students-page select,
+.students-page textarea {
+    font: inherit;
+}
+
+/* Page header */
+.students-page .page-header {
+    margin-bottom: 28px;
+}
+
+.students-page .page-header h1 {
+    margin: 0;
+    color: var(--navy);
+    font-size: 38px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.students-page .page-header p {
+    margin-top: 6px;
+    color: var(--g500);
+    font-size: 15px;
+}
+
+/* Stats grid */
+.students-page .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 28px;
+}
+
+.students-page .stat-card {
+    background: #fff;
+    border: 1px solid var(--brd);
+    border-radius: 14px;
+    padding: 20px 22px;
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.students-page .stat-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transform: translateY(-1px);
+}
+
+.students-page .stat-card.highlight {
+    border-color: #93c5fd;
+    background: linear-gradient(135deg, #fff 0%, #f0f7ff 100%);
+}
+
+.students-page .stat-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.students-page .stat-label svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.students-page .stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--g900);
+    line-height: 1;
+    letter-spacing: -0.5px;
+}
+
+.students-page .stat-value span {
+    font-size: 20px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.students-page .stat-sub {
+    font-size: 12px;
+    color: var(--g500);
+    margin-top: 6px;
+}
+
+/* Table card */
+.students-page .table-card {
+    background: #fff;
+    border: 1px solid var(--brd);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: var(--sh-s);
+    margin-bottom: 24px;
+}
+
+.students-page .table-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--brd);
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.students-page .table-toolbar h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--g900);
+}
+
+.students-page .toolbar-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.students-page .search-box {
+    position: relative;
+    width: 100%;
+    max-width: 280px;
+}
+
+.students-page .search-box svg {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    stroke: var(--g400);
+    pointer-events: none;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.students-page .search-box input {
+    width: 100%;
+    padding: 10px 14px 10px 40px;
+    border: 1.5px solid var(--brd);
+    border-radius: 8px;
+    background: #fafbfd;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    color: var(--g800);
+}
+
+.students-page .search-box input:focus {
+    border-color: var(--navy);
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.08);
+    background: #fff;
+}
+
+.students-page .filter-select {
+    padding: 10px 36px 10px 14px;
+    border: 1.5px solid var(--brd);
+    border-radius: 8px;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--g700);
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    transition: border-color 0.2s;
+}
+
+.students-page .filter-select:focus {
+    border-color: var(--navy);
+}
+
+.students-page .table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.students-page .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.students-page .data-table thead th {
+    padding: 14px 22px;
+    text-align: left;
+    background: #f8f9fc;
+    border-bottom: 1px solid var(--brd);
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    white-space: nowrap;
+}
+
+.students-page .data-table tbody td {
+    padding: 16px 22px;
+    border-bottom: 1px solid #f0f2f8;
+    font-size: 14px;
+    color: var(--g700);
+    vertical-align: middle;
+}
+
+.students-page .data-table tbody tr {
+    transition: background 0.15s;
+    cursor: pointer;
+}
+
+.students-page .data-table tbody tr:hover {
+    background: #fafbfd;
+}
+
+.students-page .data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.students-page .table-footer {
+    padding: 14px 22px;
+    border-top: 1px solid var(--brd);
+    color: #64748b;
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.students-page .empty-state {
+    padding: 50px 20px !important;
+    text-align: center !important;
+    color: var(--g500) !important;
+}
+
+/* Student cell */
+.students-page .student-info-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.students-page .student-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.students-page .student-name {
+    font-weight: 600;
+    color: var(--g900);
+}
+
+.students-page .student-email {
+    font-size: 12px;
+    color: var(--g500);
+}
+
+/* Badges */
+.students-page .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.students-page .badge-active {
+    background: var(--green-l);
+    color: var(--green);
+}
+
+.students-page .badge-inactive {
+    background: var(--red-l);
+    color: var(--red);
+}
+
+.students-page .badge-pending {
+    background: var(--amber-l);
+    color: var(--amber);
+}
+
+/* Buttons */
+.students-page .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+    border: 1.5px solid transparent;
+}
+
+.students-page .btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.students-page .btn-primary {
+    background: var(--navy);
+    color: #fff;
+    border-color: var(--navy);
+}
+
+.students-page .btn-primary:hover {
+    background: var(--navy-d);
+}
+
+.students-page .btn-outline {
+    background: #fff;
+    color: var(--navy);
+    border-color: var(--navy);
+}
+
+.students-page .btn-outline:hover {
+    background: var(--blue-s);
+}
+
+.students-page .btn-ghost {
+    background: transparent;
+    color: var(--g600);
+    border-color: var(--brd);
+}
+
+.students-page .btn-ghost:hover {
+    background: var(--g100);
+}
+
+.students-page .btn-sm {
+    padding: 7px 14px;
+    font-size: 13px;
+}
+
+/* Modal */
+.students-page .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 31, 58, 0.55);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+    backdrop-filter: blur(4px);
+}
+
+.students-page .modal-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.students-page .modal {
+    background: #fff;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 900px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--sh-lg);
+    transform: scale(0.96) translateY(10px);
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.students-page .modal-overlay.open .modal {
+    transform: scale(1) translateY(0);
+}
+
+.students-page .modal-header {
+    padding: 24px 32px 20px;
+    border-bottom: 1px solid var(--brd);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    background: linear-gradient(180deg, #fafbfd 0%, #fff 100%);
+}
+
+.students-page .modal-header-left {
+    flex: 1;
+    min-width: 0;
+}
+
+.students-page .modal-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--g900);
+    letter-spacing: -0.3px;
+    margin: 0 0 4px;
+}
+
+.students-page .modal-subtitle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--g500);
+}
+
+.students-page .modal-close {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--g500);
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.students-page .modal-close:hover {
+    background: var(--g100);
+    color: var(--g900);
+}
+
+.students-page .modal-close svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.students-page .modal-body {
+    padding: 28px 32px;
+}
+
+.students-page .modal-footer {
+    padding: 16px 32px;
+    border-top: 1px solid var(--brd);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    background: #fafbfd;
+}
+
+/* Student detail header */
+.students-page .student-detail-header {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    margin-bottom: 28px;
+}
+
+.students-page .student-detail-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.students-page .student-detail-info h2 {
+    margin: 0 0 4px;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--g900);
+}
+
+.students-page .student-detail-info p {
+    margin: 0;
+    color: var(--g500);
+    font-size: 14px;
+}
+
+.students-page .student-detail-meta {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.students-page .meta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #fff;
+    border: 1px solid var(--brd);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--g700);
+}
+
+.students-page .meta-chip strong {
+    color: var(--g900);
+}
+
+.students-page .meta-chip svg {
+    width: 14px;
+    height: 14px;
+    stroke: var(--g500);
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Detail sections */
+.students-page .detail-section {
+    margin-bottom: 28px;
+}
+
+.students-page .detail-section:last-child {
+    margin-bottom: 0;
+}
+
+.students-page .detail-section h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--g900);
+    margin: 0 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.students-page .detail-section h3 svg {
+    width: 20px;
+    height: 20px;
+    stroke: var(--navy);
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Perf grid */
+.students-page .perf-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
+.students-page .perf-item {
+    padding: 16px 18px;
+    background: var(--g50);
+    border-radius: 10px;
+    border: 1px solid var(--brd);
+}
+
+.students-page .perf-item .label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--g500);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.students-page .perf-item .value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--g900);
+    letter-spacing: -0.5px;
+}
+
+.students-page .perf-item .value.green {
+    color: var(--green);
+}
+
+.students-page .perf-item .value.amber {
+    color: var(--amber);
+}
+
+/* Exam list */
+.students-page .exam-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.students-page .exam-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 18px;
+    background: var(--g50);
+    border: 1px solid var(--brd);
+    border-radius: 10px;
+    transition: all 0.2s;
+}
+
+.students-page .exam-item:hover {
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.students-page .exam-item-left {
+    flex: 1;
+    min-width: 0;
+}
+
+.students-page .exam-item-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--g900);
+    margin-bottom: 4px;
+}
+
+.students-page .exam-item-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--g500);
+    flex-wrap: wrap;
+}
+
+.students-page .exam-item-score {
+    text-align: right;
+}
+
+.students-page .exam-item-score .score {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--g900);
+}
+
+.students-page .exam-item-score .total {
+    font-size: 12px;
+    color: var(--g500);
+}
+
+/* Progress bar */
+.students-page .progress-bar {
+    height: 8px;
+    background: var(--g200);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.students-page .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--navy), var(--blue));
+    border-radius: 4px;
+    transition: width 0.5s;
+}
+
+/* Tabs */
+.students-page .tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--brd);
+    margin-bottom: 24px;
+}
+
+.students-page .tab {
+    padding: 12px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--g500);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.2s;
+}
+
+.students-page .tab:hover {
+    color: var(--g900);
+}
+
+.students-page .tab.active {
+    color: var(--navy);
+    border-bottom-color: var(--navy);
+}
+
+/* Responsive */
+@media (max-width: 1023px) {
+    .students-page .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .students-page .perf-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 767px) {
+    .students-page .page-header h1 {
+        font-size: 28px;
+    }
+
+    .students-page .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .students-page .perf-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .students-page .student-detail-header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .students-page .modal {
+        max-width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+
+    .students-page .modal-header,
+    .students-page .modal-body,
+    .students-page .modal-footer {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+}

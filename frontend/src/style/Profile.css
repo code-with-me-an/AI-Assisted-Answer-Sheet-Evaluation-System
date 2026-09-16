@@ -1,0 +1,1051 @@
+/* ============================================
+   Profile & Settings — React port
+   Scoped under .settings-page
+   ============================================ */
+
+.settings-page {
+    --navy: #1e3a5f;
+    --navy-d: #0f1f3a;
+    --blue: #2563eb;
+    --blue-l: #dbeafe;
+    --blue-s: #eff6ff;
+    --green: #059669;
+    --green-l: #d1fae5;
+    --amber: #d97706;
+    --amber-l: #fef3c7;
+    --red: #ef4444;
+    --red-l: #fee2e2;
+    --purple: #7c3aed;
+    --g50: #f9fafb;
+    --g100: #f3f4f6;
+    --g200: #e5e7eb;
+    --g300: #d1d5db;
+    --g400: #9ca3af;
+    --g500: #6b7280;
+    --g600: #4b5563;
+    --g700: #374151;
+    --g800: #1f2937;
+    --g900: #111827;
+    --brd: #e2e5f0;
+    --sh-s: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --sh-lg: 0 20px 50px rgba(15, 31, 58, 0.18);
+
+    width: 100%;
+    color: var(--g800);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.settings-page * {
+    box-sizing: border-box;
+}
+
+.settings-page button {
+    font: inherit;
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: inherit;
+}
+
+.settings-page input,
+.settings-page select,
+.settings-page textarea {
+    font: inherit;
+}
+
+/* Page header */
+.settings-page .page-header {
+    margin-bottom: 28px;
+}
+
+.settings-page .page-header h1 {
+    margin: 0;
+    color: var(--navy);
+    font-size: 38px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+}
+
+.settings-page .page-header p {
+    margin-top: 6px;
+    color: var(--g500);
+    font-size: 15px;
+}
+
+/* Settings layout */
+.settings-page .settings-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 28px;
+    align-items: start;
+}
+
+/* Settings sidebar */
+.settings-page .settings-sidebar {
+    background: #fff;
+    border: 1px solid var(--brd);
+    border-radius: 14px;
+    padding: 8px;
+    position: sticky;
+    top: 40px;
+}
+
+.settings-page .settings-nav-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 9px;
+    background: transparent;
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: left;
+    transition: all 0.18s ease;
+}
+
+.settings-page .settings-nav-item:hover {
+    background: #f0f2f8;
+    color: var(--g900);
+}
+
+.settings-page .settings-nav-item.active {
+    background: var(--blue-s);
+    color: var(--navy);
+}
+
+.settings-page .settings-nav-item svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Settings content */
+.settings-page .settings-content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Profile header card */
+.settings-page .profile-header-card {
+    background: #fff;
+    border: 1px solid var(--brd);
+    border-radius: 14px;
+    padding: 32px;
+    box-shadow: var(--sh-s);
+}
+
+.settings-page .profile-header-top {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    margin-bottom: 28px;
+}
+
+.settings-page .profile-avatar-large {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-size: 36px;
+    font-weight: 700;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.settings-page .profile-avatar-large .edit-avatar {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 32px;
+    height: 32px;
+    background: #fff;
+    border: 2px solid var(--brd);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    transition: all 0.2s;
+}
+
+.settings-page .profile-avatar-large .edit-avatar:hover {
+    background: var(--g100);
+}
+
+.settings-page .profile-avatar-large .edit-avatar svg {
+    width: 14px;
+    height: 14px;
+    stroke: var(--navy);
+    fill: none;
+    stroke-width: 2;
+}
+
+.settings-page .profile-header-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.settings-page .profile-header-info h2 {
+    margin: 0 0 4px;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--g900);
+    letter-spacing: -0.3px;
+}
+
+.settings-page .profile-header-info .role {
+    font-size: 14px;
+    color: var(--g500);
+    margin-bottom: 12px;
+}
+
+.settings-page .profile-header-info .profile-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.settings-page .profile-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #f0f2f8;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--g700);
+}
+
+.settings-page .profile-badge svg {
+    width: 13px;
+    height: 13px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.settings-page .profile-badge.verified {
+    background: var(--green-l);
+    color: var(--green);
+}
+
+.settings-page .profile-header-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.settings-page .profile-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    padding-top: 24px;
+    border-top: 1px solid var(--brd);
+}
+
+.settings-page .profile-stat {
+    text-align: center;
+    padding: 16px;
+    background: var(--g50);
+    border-radius: 10px;
+}
+
+.settings-page .profile-stat .label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--g500);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.settings-page .profile-stat .value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--g900);
+    letter-spacing: -0.5px;
+}
+
+/* Settings card */
+.settings-page .settings-card {
+    background: #fff;
+    border: 1px solid var(--brd);
+    border-radius: 14px;
+    padding: 28px 32px;
+    box-shadow: var(--sh-s);
+}
+
+.settings-page .settings-card.danger {
+    border-color: var(--red-l);
+}
+
+.settings-page .settings-card-header {
+    margin-bottom: 24px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--brd);
+}
+
+.settings-page .settings-card-header h3 {
+    margin: 0 0 4px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--g900);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-page .settings-card-header h3.danger {
+    color: var(--red);
+}
+
+.settings-page .settings-card-header h3 svg {
+    width: 20px;
+    height: 20px;
+    stroke: var(--navy);
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.settings-page .settings-card-header h3.danger svg {
+    stroke: var(--red);
+}
+
+.settings-page .settings-card-header p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--g500);
+}
+
+/* Form */
+.settings-page .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.settings-page .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.settings-page .form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.settings-page .form-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--g700);
+}
+
+.settings-page .form-group label .required {
+    color: var(--red);
+}
+
+.settings-page .form-group input,
+.settings-page .form-group select,
+.settings-page .form-group textarea {
+    padding: 11px 14px;
+    border: 1.5px solid var(--brd);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--g900);
+    background: #fff;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.settings-page .form-group input:focus,
+.settings-page .form-group select:focus,
+.settings-page .form-group textarea:focus {
+    border-color: var(--navy);
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.08);
+}
+
+.settings-page .form-group input::placeholder,
+.settings-page .form-group textarea::placeholder {
+    color: var(--g400);
+}
+
+.settings-page .form-group input[readonly] {
+    background: var(--g50);
+}
+
+.settings-page .form-group select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 40px;
+}
+
+.settings-page .form-group textarea {
+    resize: vertical;
+    min-height: 90px;
+}
+
+.settings-page .form-group .hint {
+    font-size: 12px;
+    color: var(--g500);
+}
+
+/* Toggle row */
+.settings-page .toggle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0;
+    border-bottom: 1px solid #f0f2f8;
+}
+
+.settings-page .toggle-row:last-child {
+    border-bottom: none;
+}
+
+.settings-page .toggle-row-info {
+    flex: 1;
+}
+
+.settings-page .toggle-row-info h4 {
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--g900);
+}
+
+.settings-page .toggle-row-info p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--g500);
+}
+
+.settings-page .toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+    margin-left: 16px;
+    display: inline-block;
+}
+
+.settings-page .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+.settings-page .toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--g300);
+    transition: 0.3s;
+    border-radius: 24px;
+}
+
+.settings-page .toggle-slider::before {
+    position: absolute;
+    content: '';
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.settings-page .toggle-switch input:checked + .toggle-slider {
+    background-color: var(--navy);
+}
+
+.settings-page .toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(20px);
+}
+
+/* Toggle group heading */
+.settings-page .toggle-group-heading {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--g500);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 20px 0 12px;
+}
+
+.settings-page .toggle-group-heading:first-child {
+    margin-top: 0;
+}
+
+/* Buttons */
+.settings-page .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+    border: 1.5px solid transparent;
+}
+
+.settings-page .btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.settings-page .btn-primary {
+    background: var(--navy);
+    color: #fff;
+    border-color: var(--navy);
+}
+
+.settings-page .btn-primary:hover {
+    background: var(--navy-d);
+}
+
+.settings-page .btn-outline {
+    background: #fff;
+    color: var(--navy);
+    border-color: var(--navy);
+}
+
+.settings-page .btn-outline:hover {
+    background: var(--blue-s);
+}
+
+.settings-page .btn-ghost {
+    background: transparent;
+    color: var(--g600);
+    border-color: var(--brd);
+}
+
+.settings-page .btn-ghost:hover {
+    background: var(--g100);
+}
+
+.settings-page .btn-danger {
+    background: #fff;
+    color: var(--red);
+    border-color: var(--red-l);
+}
+
+.settings-page .btn-danger:hover {
+    background: var(--red-l);
+}
+
+.settings-page .btn-sm {
+    padding: 7px 14px;
+    font-size: 13px;
+}
+
+.settings-page .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--brd);
+}
+
+/* Radio group */
+.settings-page .radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.settings-page .radio-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1.5px solid var(--brd);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.settings-page .radio-option:hover {
+    border-color: var(--navy);
+    background: var(--g50);
+}
+
+.settings-page .radio-option.selected {
+    border-color: var(--navy);
+    background: var(--blue-s);
+}
+
+.settings-page .radio-option input[type='radio'] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--navy);
+}
+
+.settings-page .radio-option-content {
+    flex: 1;
+}
+
+.settings-page .radio-option-content h4 {
+    margin: 0 0 2px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--g900);
+}
+
+.settings-page .radio-option-content p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--g500);
+}
+
+/* Session list */
+.settings-page .session-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.settings-page .session-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 18px;
+    background: var(--g50);
+    border: 1px solid var(--brd);
+    border-radius: 10px;
+    gap: 12px;
+}
+
+.settings-page .session-item.current {
+    border-color: var(--navy);
+    background: var(--blue-s);
+}
+
+.settings-page .session-info {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+    min-width: 0;
+}
+
+.settings-page .session-icon {
+    width: 40px;
+    height: 40px;
+    background: #fff;
+    border: 1px solid var(--brd);
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+}
+
+.settings-page .session-icon svg {
+    width: 20px;
+    height: 20px;
+    stroke: var(--navy);
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.settings-page .session-details h4 {
+    margin: 0 0 2px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--g900);
+}
+
+.settings-page .session-details p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--g500);
+}
+
+.settings-page .session-meta {
+    text-align: right;
+    margin-right: 16px;
+    flex-shrink: 0;
+}
+
+.settings-page .session-meta .time {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--g900);
+}
+
+.settings-page .session-meta .location {
+    font-size: 12px;
+    color: var(--g500);
+}
+
+.settings-page .current-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    background: var(--green-l);
+    color: var(--green);
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+/* Connected accounts */
+.settings-page .connected-accounts {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.settings-page .account-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    background: var(--g50);
+    border: 1px solid var(--brd);
+    border-radius: 10px;
+}
+
+.settings-page .account-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.settings-page .account-icon.google {
+    background: var(--amber-l);
+    color: var(--amber);
+}
+
+.settings-page .account-icon.microsoft {
+    background: var(--blue-l);
+    color: var(--blue);
+}
+
+.settings-page .account-icon.github {
+    background: var(--g800);
+    color: #fff;
+}
+
+.settings-page .account-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.settings-page .account-info h4 {
+    margin: 0 0 2px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--g900);
+}
+
+.settings-page .account-info p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--g500);
+}
+
+.settings-page .account-status {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.settings-page .account-status.connected {
+    background: var(--green-l);
+    color: var(--green);
+}
+
+.settings-page .account-status.disconnected {
+    background: var(--g100);
+    color: var(--g500);
+}
+
+/* API Key block */
+.settings-page .api-key-block {
+    padding: 20px;
+    background: var(--g50);
+    border-radius: 10px;
+    border: 1px solid var(--brd);
+}
+
+.settings-page .api-key-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.settings-page .api-key-name {
+    font-weight: 600;
+    color: var(--g900);
+    font-size: 14px;
+}
+
+.settings-page .api-key-value {
+    font-size: 12px;
+    color: var(--g500);
+    font-family: monospace;
+    margin-top: 2px;
+}
+
+.settings-page .api-key-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.settings-page .api-key-meta {
+    font-size: 12px;
+    color: var(--g500);
+}
+
+/* Danger zone */
+.settings-page .danger-zone-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: #fef2f2;
+    border-radius: 10px;
+    border: 1px solid var(--red-l);
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.settings-page .danger-zone-row h4 {
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--g900);
+}
+
+.settings-page .danger-zone-row p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--g500);
+}
+
+/* Tab content */
+.settings-page .tab-content {
+    animation: sp-fade 0.3s;
+}
+
+@keyframes sp-fade {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Modal */
+.settings-page .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 31, 58, 0.55);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+    backdrop-filter: blur(4px);
+}
+
+.settings-page .modal-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.settings-page .modal {
+    background: #fff;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 480px;
+    padding: 28px;
+    box-shadow: var(--sh-lg);
+    transform: scale(0.96) translateY(10px);
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.settings-page .modal-overlay.open .modal {
+    transform: scale(1) translateY(0);
+}
+
+.settings-page .modal h3 {
+    margin: 0 0 8px;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--g900);
+}
+
+.settings-page .modal p {
+    margin: 0 0 20px;
+    font-size: 14px;
+    color: var(--g500);
+    line-height: 1.5;
+}
+
+.settings-page .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--brd);
+}
+
+/* Toast */
+.settings-page .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--green-l);
+    color: var(--green);
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    z-index: 300;
+    transform: translateY(10px);
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-page .toast.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.settings-page .toast.error {
+    background: var(--red-l);
+    color: var(--red);
+}
+
+.settings-page .toast svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Responsive */
+@media (max-width: 1023px) {
+    .settings-page .settings-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .settings-page .settings-sidebar {
+        position: static;
+        display: flex;
+        overflow-x: auto;
+        gap: 4px;
+        padding: 6px;
+    }
+
+    .settings-page .settings-nav-item {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .settings-page .profile-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .settings-page .form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767px) {
+    .settings-page .page-header h1 {
+        font-size: 28px;
+    }
+
+    .settings-page .profile-header-top {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .settings-page .profile-header-actions {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .settings-page .profile-stats {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .settings-page .session-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .settings-page .session-meta {
+        text-align: left;
+        margin-right: 0;
+    }
+
+    .settings-page .settings-card {
+        padding: 20px;
+    }
+}

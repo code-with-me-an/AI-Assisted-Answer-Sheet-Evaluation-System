@@ -595,9 +595,8 @@ function PastExams() {
                                 <td>{statusBadge(e.status)}</td>
                                 <td>
                                     <button
-                                        className={`past-action-btn ${
-                                            e.status === 'pending' ? 'primary' : ''
-                                        }`}
+                                        className={`past-action-btn ${e.status === 'pending' ? 'primary' : ''
+                                            }`}
                                         onClick={(ev) => {
                                             ev.stopPropagation()
                                             openModal(e.id)
@@ -1035,10 +1034,10 @@ function PastExams() {
             t === 'mcq'
                 ? 'MCQ'
                 : t === 'descriptive'
-                  ? 'Descriptive'
-                  : t === 'short'
-                    ? 'Short Answer'
-                    : 'True/False'
+                    ? 'Descriptive'
+                    : t === 'short'
+                        ? 'Short Answer'
+                        : 'True/False'
 
         return (
             <div className="tab-content">
@@ -1161,14 +1160,11 @@ function PastExams() {
 
     return (
         <div className="past-exams-page">
-            <header className="page-header">
-                <h1>Past Exams</h1>
+            <div className="page-header">
                 <p>
-                    Review analytics and graded papers from previous tests.
-                    Click any exam to manage details.
+                   View previous examinations, analyse AI-evaluated results and review student performance.
                 </p>
-            </header>
-
+            </div>
             <section className="past-exams-stats">
                 <div className="past-stat-card">
                     <div className="past-stat-label">Total Exams</div>
@@ -1191,7 +1187,7 @@ function PastExams() {
                     <div className="past-stat-value">
                         {Math.round(
                             exams.reduce((s, e) => s + e.average, 0) /
-                                (exams.length || 1)
+                            (exams.length || 1)
                         )}
                         <span>%</span>
                     </div>
@@ -1307,27 +1303,24 @@ function PastExams() {
 
                         <div className="modal-tabs">
                             <button
-                                className={`modal-tab ${
-                                    currentTab === 'overview' ? 'active' : ''
-                                }`}
+                                className={`modal-tab ${currentTab === 'overview' ? 'active' : ''
+                                    }`}
                                 onClick={() => setCurrentTab('overview')}
                             >
                                 <Icon name="grid" size={16} />
                                 Overview
                             </button>
                             <button
-                                className={`modal-tab ${
-                                    currentTab === 'details' ? 'active' : ''
-                                }`}
+                                className={`modal-tab ${currentTab === 'details' ? 'active' : ''
+                                    }`}
                                 onClick={() => setCurrentTab('details')}
                             >
                                 <Icon name="edit" size={16} />
                                 Details
                             </button>
                             <button
-                                className={`modal-tab ${
-                                    currentTab === 'students' ? 'active' : ''
-                                }`}
+                                className={`modal-tab ${currentTab === 'students' ? 'active' : ''
+                                    }`}
                                 onClick={() => setCurrentTab('students')}
                             >
                                 <Icon name="users" size={16} />
@@ -1337,9 +1330,8 @@ function PastExams() {
                                 </span>
                             </button>
                             <button
-                                className={`modal-tab ${
-                                    currentTab === 'questions' ? 'active' : ''
-                                }`}
+                                className={`modal-tab ${currentTab === 'questions' ? 'active' : ''
+                                    }`}
                                 onClick={() => setCurrentTab('questions')}
                             >
                                 <Icon name="file" size={16} />
@@ -1349,9 +1341,8 @@ function PastExams() {
                                 </span>
                             </button>
                             <button
-                                className={`modal-tab ${
-                                    currentTab === 'results' ? 'active' : ''
-                                }`}
+                                className={`modal-tab ${currentTab === 'results' ? 'active' : ''
+                                    }`}
                                 onClick={() => setCurrentTab('results')}
                             >
                                 <Icon name="chart" size={16} />

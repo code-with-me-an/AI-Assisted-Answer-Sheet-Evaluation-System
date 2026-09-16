@@ -166,7 +166,7 @@ function Dashboard({ onNavigate }) {
         <div className="dashboard">
 
             <header className="main-header">
-                <h1>Good morning, Dr. Alex</h1>
+                <h1>Good morning, Prof. Ananthu TP</h1>
 
                 <p>
                     Here is an overview of your evaluation activities.

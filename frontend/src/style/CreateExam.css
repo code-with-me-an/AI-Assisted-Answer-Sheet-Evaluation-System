@@ -40,6 +40,23 @@
     box-sizing: border-box;
 }
 
+/* Page header */
+.create-exam-page .page-header {
+    margin-bottom: 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.create-exam-page .page-header p {
+    margin-top: 6px;
+    color: var(--g500);
+    font-size: 15px;
+    max-width: 640px;
+}
+
 .create-exam-page button,
 .create-exam-page input,
 .create-exam-page select,

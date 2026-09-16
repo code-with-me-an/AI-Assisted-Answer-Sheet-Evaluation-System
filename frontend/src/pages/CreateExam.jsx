@@ -1093,15 +1093,15 @@ function CreateExam() {
                         akSource === 'ai'
                             ? 'Generating Answer Key with AI'
                             : akDocType === DOC_TYPES.DIGITAL
-                              ? 'Processing Answer Key'
-                              : 'Processing Handwritten Answer Key'
+                                ? 'Processing Answer Key'
+                                : 'Processing Handwritten Answer Key'
                     }
                     subtitle={
                         processingDone
                             ? 'Processing complete!'
                             : akSource === 'ai'
-                              ? 'AI is preparing a structured answer key...'
-                              : 'Please wait while we structure your answer key...'
+                                ? 'AI is preparing a structured answer key...'
+                                : 'Please wait while we structure your answer key...'
                     }
                     steps={processingSteps}
                     currentStepIdx={processingStepIdx}
@@ -1323,8 +1323,8 @@ function CreateExam() {
             akSource === 'ai'
                 ? 'AI Generated'
                 : akSource === 'upload'
-                  ? `Uploaded${akFile ? ': ' + akFile.name : ''}`
-                  : 'Not configured'
+                    ? `Uploaded${akFile ? ': ' + akFile.name : ''}`
+                    : 'Not configured'
 
         return (
             <div className="ce-card">
@@ -1388,6 +1388,11 @@ function CreateExam() {
 
     return (
         <div className="create-exam-page">
+            <div className="page-header">
+                <p>
+                    Create and configure a new examination for AI-based evaluation of student answer sheets.
+                </p>
+            </div>
             {renderStepper()}
 
             {step === 1 && renderStep1()}

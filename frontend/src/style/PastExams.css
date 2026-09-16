@@ -58,26 +58,21 @@
     font: inherit;
 }
 
-/* =========================
-   Page header
-========================= */
+/* Page header */
 .past-exams-page .page-header {
     margin-bottom: 28px;
-}
-
-.past-exams-page .page-header h1 {
-    margin: 0;
-    color: var(--navy);
-    font-size: 38px;
-    font-weight: 700;
-    line-height: 1.2;
-    letter-spacing: -0.5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
 }
 
 .past-exams-page .page-header p {
     margin-top: 6px;
     color: var(--g500);
     font-size: 15px;
+    max-width: 640px;
 }
 
 /* =========================
@@ -1366,9 +1361,6 @@
 }
 
 @media (max-width: 640px) {
-    .past-exams-page .page-header h1 {
-        font-size: 28px;
-    }
 
     .past-exams-page .past-exams-stats {
         grid-template-columns: 1fr 1fr;

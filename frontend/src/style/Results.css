@@ -101,15 +101,6 @@
     flex-wrap: wrap;
 }
 
-.results-page .page-header h1 {
-    margin: 0;
-    color: var(--navy);
-    font-size: 38px;
-    font-weight: 700;
-    line-height: 1.2;
-    letter-spacing: -0.5px;
-}
-
 .results-page .page-header p {
     margin-top: 6px;
     color: var(--g500);
@@ -2123,10 +2114,6 @@
 }
 
 @media (max-width: 640px) {
-    .results-page .page-header h1 {
-        font-size: 28px;
-    }
-
     .results-page .stats-grid {
         grid-template-columns: 1fr 1fr;
     }

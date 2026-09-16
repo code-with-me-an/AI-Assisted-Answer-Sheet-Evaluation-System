@@ -59,14 +59,6 @@
     margin-bottom: 28px;
 }
 
-.students-page .page-header h1 {
-    margin: 0;
-    color: var(--navy);
-    font-size: 38px;
-    font-weight: 700;
-    line-height: 1.2;
-}
-
 .students-page .page-header p {
     margin-top: 6px;
     color: var(--g500);
@@ -773,10 +765,6 @@
 }
 
 @media (max-width: 767px) {
-    .students-page .page-header h1 {
-        font-size: 28px;
-    }
-
     .students-page .stats-grid {
         grid-template-columns: 1fr;
     }

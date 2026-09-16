@@ -1406,7 +1406,6 @@ function Profile() {
     return (
         <div className="settings-page">
             <div className="page-header">
-                <h1>Profile &amp; Settings</h1>
                 <p>Manage your account information and application preferences.</p>
             </div>
 

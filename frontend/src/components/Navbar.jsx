@@ -158,12 +158,12 @@ function Navbar({ activePage, onNavigate }) {
                 <div className="sidebar-profile">
 
                     <div className="sidebar-avatar">
-                        PA
+                        AN
                     </div>
 
                     <div className="sidebar-profile-info">
-                        <h4>Prof. Anderson</h4>
-                        <p>Department of Science</p>
+                        <h4>prof. ananthu</h4>
+                        <p>Department of computer science</p>
                     </div>
 
                 </div>

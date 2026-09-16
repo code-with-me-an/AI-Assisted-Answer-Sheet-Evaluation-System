@@ -401,7 +401,6 @@ function Students() {
     return (
         <div className="students-page">
             <div className="page-header">
-                <h1>Students</h1>
                 <p>Manage and monitor all enrolled students across your examinations.</p>
             </div>
 

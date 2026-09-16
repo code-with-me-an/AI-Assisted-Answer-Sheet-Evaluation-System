@@ -661,7 +661,6 @@ function Results() {
 
                 <div className="page-header">
                     <div>
-                        <h1>Results</h1>
                         <p>
                             View and analyse AI-evaluated examination results and
                             review student answer sheets.

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import icon from '../assets/Icon.svg'
 import '../style/Login.css'
+import { supabase } from '../lib/supabase'
 
 function EyeIcon() {
     return (
@@ -40,22 +41,60 @@ function EyeOffIcon() {
 
 function Login({ onLogin }) {
     const [showPassword, setShowPassword] = useState(false)
+    const [email, setEmail] = useState('')
+    const [password, setPassword] = useState('')
+    const [error, setError] = useState('')
+    const [loading, setLoading] = useState(false)
+
+    const handleSubmit = async (event) => {
+        event.preventDefault()
+
+        setError('')
+
+        if (!email.trim() || !password) {
+            setError('Please enter your email and password.')
+            return
+        }
+
+        try {
+            setLoading(true)
+
+            const { data, error: loginError } =
+                await supabase.auth.signInWithPassword({
+                    email: email.trim(),
+                    password,
+                })
+
+            if (loginError) {
+                setError(loginError.message)
+                return
+            }
+
+            if (data?.user) {
+                onLogin(data.user)
+            }
+        } catch (err) {
+            console.error('Login error:', err)
+            setError('Something went wrong. Please try again.')
+        } finally {
+            setLoading(false)
+        }
+    }
 
     return (
         <div className="login-page">
-
             <header className="login-header">
                 <div className="brand">
                     <span className="brand-icon">
                         <img src={icon} alt="AutoGrade" />
                     </span>
+
                     <span>AutoGrade</span>
                 </div>
             </header>
 
             <main className="login-main">
                 <section className="login-card">
-
                     <div className="login-card-header">
                         <h1>Welcome back</h1>
 
@@ -65,13 +104,7 @@ function Login({ onLogin }) {
                         </p>
                     </div>
 
-                    <form
-                        onSubmit={(event) => {
-                            event.preventDefault()
-                            onLogin()
-                        }}
-                    >
-
+                    <form onSubmit={handleSubmit}>
                         <div className="form-group">
                             <label htmlFor="email">
                                 Email
@@ -86,12 +119,16 @@ function Login({ onLogin }) {
                                     id="email"
                                     type="email"
                                     placeholder="you@example.com"
+                                    value={email}
+                                    onChange={(event) =>
+                                        setEmail(event.target.value)
+                                    }
+                                    autoComplete="email"
                                 />
                             </div>
                         </div>
 
                         <div className="form-group">
-
                             <div className="password-label-row">
                                 <label htmlFor="password">
                                     Password
@@ -112,15 +149,26 @@ function Login({ onLogin }) {
 
                                 <input
                                     id="password"
-                                    type={showPassword ? 'text' : 'password'}
+                                    type={
+                                        showPassword
+                                            ? 'text'
+                                            : 'password'
+                                    }
                                     placeholder="••••••••"
+                                    value={password}
+                                    onChange={(event) =>
+                                        setPassword(event.target.value)
+                                    }
+                                    autoComplete="current-password"
                                 />
 
                                 <button
                                     type="button"
                                     className="password-toggle"
                                     onClick={() =>
-                                        setShowPassword((v) => !v)
+                                        setShowPassword(
+                                            (value) => !value
+                                        )
                                     }
                                     aria-label={
                                         showPassword
@@ -136,7 +184,6 @@ function Login({ onLogin }) {
                                     )}
                                 </button>
                             </div>
-
                         </div>
 
                         <div className="remember-row">
@@ -150,15 +197,25 @@ function Login({ onLogin }) {
                             </label>
                         </div>
 
+                        {error && (
+                            <p className="login-error">
+                                {error}
+                            </p>
+                        )}
+
                         <button
                             type="submit"
                             className="sign-in-button"
+                            disabled={loading}
                         >
-                            Sign In
+                            {loading
+                                ? 'Signing In...'
+                                : 'Sign In'}
                         </button>
 
                         <p className="signup-prompt">
                             Don't have an account?{' '}
+
                             <button
                                 type="button"
                                 className="signup-link"
@@ -166,7 +223,6 @@ function Login({ onLogin }) {
                                 Create one
                             </button>
                         </p>
-
                     </form>
                 </section>
             </main>

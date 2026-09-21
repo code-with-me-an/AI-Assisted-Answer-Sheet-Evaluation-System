@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+
+import { supabase } from './lib/supabase'
 
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -15,20 +17,79 @@ import './App.css'
 function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(false)
     const [activePage, setActivePage] = useState('dashboard')
+    const [authLoading, setAuthLoading] = useState(true)
 
-    const handleLogin = () => {
+    useEffect(() => {
+        let mounted = true
+
+        const checkSession = async () => {
+            const { data, error } = await supabase.auth.getSession()
+
+            if (error) {
+                console.error('Error checking Supabase session:', error)
+            }
+
+            if (mounted) {
+                setIsLoggedIn(!!data?.session)
+                setAuthLoading(false)
+            }
+        }
+
+        checkSession()
+
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange(
+            (_event, session) => {
+                if (!mounted) {
+                    return
+                }
+
+                setIsLoggedIn(!!session)
+
+                if (session) {
+                    setActivePage('dashboard')
+                }
+            }
+        )
+
+        return () => {
+            mounted = false
+            subscription.unsubscribe()
+        }
+    }, [])
+
+    const handleLogin = (user) => {
+        console.log('Successfully logged in:', user)
+
         setIsLoggedIn(true)
         setActivePage('dashboard')
     }
 
-    const handleNavigate = (page) => {
+    const handleNavigate = async (page) => {
         if (page === 'logout') {
+            const { error } = await supabase.auth.signOut()
+
+            if (error) {
+                console.error('Logout error:', error)
+                return
+            }
+
             setIsLoggedIn(false)
             setActivePage('dashboard')
+
             return
         }
 
         setActivePage(page)
+    }
+
+    if (authLoading) {
+        return (
+            <div className="auth-loading">
+                <p>Loading...</p>
+            </div>
+        )
     }
 
     if (!isLoggedIn) {
@@ -59,7 +120,9 @@ function App() {
                 return (
                     <div className="placeholder-page">
                         <h1>Help Center</h1>
-                        <p>Help and documentation will be available here.</p>
+                        <p>
+                            Help and documentation will be available here.
+                        </p>
                     </div>
                 )
 

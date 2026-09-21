@@ -239,7 +239,7 @@ function CreateExam() {
     const [processingDone, setProcessingDone] = useState(false)
 
     /* --- Answer Key state --- */
-    const [akSource, setAkSource] = useState(null) // null | 'upload' | 'ai'
+    const [akSource, setAkSource] = useState(null) // null | 'upload' | 'manual'
     const [akFile, setAkFile] = useState(null)
     const [akDocType, setAkDocType] = useState(null)
     const [akState, setAkState] = useState('idle') // idle | doc-type | processing | editing | confirmed
@@ -427,6 +427,34 @@ function CreateExam() {
         if (!isAI && !akDocType) return
         setAkState('processing')
         setProcessingKind('ak')
+    }
+
+    const startManualAnswerKey = () => {
+        const answers = {}
+
+        qpQuestions.forEach((question) => {
+            answers[question.number] = {
+                reference: '',
+                concepts: [],
+                criteria: [
+                    {
+                        name: '',
+                        marks: question.marks || 0,
+                    },
+                ],
+                guidance: '',
+                reviewed: false,
+                aiGenerated: false,
+            }
+        })
+
+        setAkAnswers(answers)
+
+        if (qpQuestions.length > 0) {
+            setSelectedQNumber(qpQuestions[0].number)
+        }
+
+        setAkState('editing')
     }
 
     const backToAkChoice = () => {
@@ -972,9 +1000,11 @@ function CreateExam() {
                 <div className="ce-card">
                     <div className="ce-card-header">
                         <h2>Answer Key & Marking Scheme</h2>
-                        <p>Create structured reference information for AI evaluation.</p>
+                        <p>How would you like to create your answer key?</p>
                     </div>
+
                     <div className="ce-choice-grid">
+
                         <button
                             type="button"
                             className="ce-choice-card recommended"
@@ -983,27 +1013,40 @@ function CreateExam() {
                             <div className="ce-choice-icon">
                                 <Icon name="upload" size={28} />
                             </div>
+
                             <h3>Upload Existing Answer Key</h3>
-                            <p>Upload an existing answer-key or marking-scheme document.</p>
+
+                            <p>
+                                Upload an existing answer key or marking scheme
+                                document.
+                            </p>
                         </button>
+
                         <button
                             type="button"
                             className="ce-choice-card"
                             onClick={() => {
-                                setAkSource('ai')
-                                startAkProcessing(true)
+                                setAkSource('manual')
+                                startManualAnswerKey()
                             }}
                         >
                             <div className="ce-choice-icon">
-                                <Icon name="ai" size={28} />
+                                <Icon name="edit" size={28} />
                             </div>
-                            <h3>Create with AI</h3>
-                            <p>Use the confirmed question paper to generate a draft answer key and marking scheme.</p>
+
+                            <h3>Create Manually</h3>
+
+                            <p>
+                                Add reference answers, key concepts, marking
+                                schemes, and evaluation guidance manually.
+                            </p>
                         </button>
+
                     </div>
                 </div>
             )
         }
+
 
         if (akSource === 'upload' && akState === 'idle') {
             return (
@@ -1320,8 +1363,8 @@ function CreateExam() {
                 ? 'Created Manually'
                 : `Uploaded${qpFile ? ': ' + qpFile.name : ''}`
         const akLabel =
-            akSource === 'ai'
-                ? 'AI Generated'
+            akSource === 'manual'
+                ? 'Created Manually'
                 : akSource === 'upload'
                     ? `Uploaded${akFile ? ': ' + akFile.name : ''}`
                     : 'Not configured'

@@ -41,26 +41,35 @@ function EyeOffIcon() {
 
 function Login({ onLogin }) {
     const [showPassword, setShowPassword] = useState(false)
+    const [isSignup, setIsSignup] = useState(false)
+    const [name, setName] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [error, setError] = useState('')
+    const [notice, setNotice] = useState('')
     const [loading, setLoading] = useState(false)
 
     const handleSubmit = async (event) => {
         event.preventDefault()
 
         setError('')
+        setNotice('')
 
-        if (!email.trim() || !password) {
-            setError('Please enter your email and password.')
+        if (!email.trim() || !password || (isSignup && !name.trim())) {
+            setError(isSignup ? 'Please enter your name, email, and password.' : 'Please enter your email and password.')
             return
         }
 
         try {
             setLoading(true)
 
-            const { data, error: loginError } =
-                await supabase.auth.signInWithPassword({
+            const { data, error: loginError } = isSignup
+                ? await supabase.auth.signUp({
+                    email: email.trim(),
+                    password,
+                    options: { data: { name: name.trim() } },
+                })
+                : await supabase.auth.signInWithPassword({
                     email: email.trim(),
                     password,
                 })
@@ -70,8 +79,11 @@ function Login({ onLogin }) {
                 return
             }
 
-            if (data?.user) {
+            if (data?.session?.user) {
                 onLogin(data.user)
+            } else if (data?.user) {
+                setNotice('Account created. Check your email to confirm your account, then sign in.')
+                setIsSignup(false)
             }
         } catch (err) {
             console.error('Login error:', err)
@@ -96,15 +108,30 @@ function Login({ onLogin }) {
             <main className="login-main">
                 <section className="login-card">
                     <div className="login-card-header">
-                        <h1>Welcome back</h1>
+                        <h1>{isSignup ? 'Create your account' : 'Welcome back'}</h1>
 
                         <p>
-                            Sign in to your teaching workspace
-                            and continue evaluating.
+                            {isSignup ? 'Start using your teaching workspace.' : 'Sign in to your teaching workspace and continue evaluating.'}
                         </p>
                     </div>
 
                     <form onSubmit={handleSubmit}>
+                        {isSignup && (
+                            <div className="form-group">
+                                <label htmlFor="name">Name</label>
+                                <div className="input-wrapper">
+                                    <span className="input-icon">👤</span>
+                                    <input
+                                        id="name"
+                                        type="text"
+                                        placeholder="Your name"
+                                        value={name}
+                                        onChange={(event) => setName(event.target.value)}
+                                        autoComplete="name"
+                                    />
+                                </div>
+                            </div>
+                        )}
                         <div className="form-group">
                             <label htmlFor="email">
                                 Email
@@ -203,24 +230,29 @@ function Login({ onLogin }) {
                             </p>
                         )}
 
+                        {notice && <p className="login-error">{notice}</p>}
+
                         <button
                             type="submit"
                             className="sign-in-button"
                             disabled={loading}
                         >
-                            {loading
-                                ? 'Signing In...'
-                                : 'Sign In'}
+                            {loading ? (isSignup ? 'Creating Account...' : 'Signing In...') : (isSignup ? 'Create Account' : 'Sign In')}
                         </button>
 
                         <p className="signup-prompt">
-                            Don't have an account?{' '}
+                            {isSignup ? 'Already have an account? ' : "Don't have an account? "}
 
                             <button
                                 type="button"
                                 className="signup-link"
+                                onClick={() => {
+                                    setIsSignup((value) => !value)
+                                    setError('')
+                                    setNotice('')
+                                }}
                             >
-                                Create one
+                                {isSignup ? 'Sign in' : 'Create one'}
                             </button>
                         </p>
                     </form>

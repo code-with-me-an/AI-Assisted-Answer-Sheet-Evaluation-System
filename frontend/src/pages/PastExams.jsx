@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { api } from '../lib/api'
+import { PageLoader, ErrorState } from '../components/PageLoader'
 import '../style/PastExams.css'
 
 /* ============================================================
@@ -126,167 +128,6 @@ function Icon({ name, size = 16 }) {
    DATA
    ============================================================ */
 
-const INITIAL_EXAMS = [
-    {
-        id: 1,
-        title: 'Final Term - Advanced Biology',
-        code: 'Biology 401',
-        date: 'Oct 24, 2023',
-        dateISO: '2023-10-24',
-        students: 45,
-        evaluated: 45,
-        pending: 12,
-        average: 78,
-        highest: 96,
-        status: 'pending',
-        semester: 'S6',
-        duration: '3 Hours',
-        marks: 150,
-        description:
-            'Comprehensive final covering all topics from cell biology to genetics.',
-        location: 'Hall A',
-        supervisor: 'Prof. Anderson',
-        studentList: [
-            { id: 'STU001', name: 'John Smith', email: 'john.smith@university.edu', score: 92, grade: 'a', selected: true },
-            { id: 'STU002', name: 'Sarah Johnson', email: 'sarah.j@university.edu', score: 85, grade: 'b', selected: true },
-            { id: 'STU003', name: 'Michael Chen', email: 'm.chen@university.edu', score: 78, grade: 'b', selected: true },
-            { id: 'STU004', name: 'Emily Davis', email: 'e.davis@university.edu', score: 65, grade: 'c', selected: true },
-            { id: 'STU005', name: 'David Wilson', email: 'd.wilson@university.edu', score: 88, grade: 'b', selected: true },
-            { id: 'STU006', name: 'Jessica Brown', email: 'j.brown@university.edu', score: 96, grade: 'a', selected: true },
-            { id: 'STU007', name: 'Daniel Martinez', email: 'd.martinez@university.edu', score: 72, grade: 'c', selected: true },
-            { id: 'STU008', name: 'Sophia Taylor', email: 's.taylor@university.edu', score: 58, grade: 'd', selected: false },
-            { id: 'STU009', name: 'James Anderson', email: 'j.anderson@university.edu', score: 81, grade: 'b', selected: true },
-            { id: 'STU010', name: 'Olivia Thomas', email: 'o.thomas@university.edu', score: 45, grade: 'f', selected: true },
-        ],
-        questions: [
-            { number: 1, type: 'descriptive', text: 'Explain the process of photosynthesis and describe the role of chlorophyll in the light-dependent reactions.', marks: 10, avgScore: 7.8, correct: 38 },
-            { number: 2, type: 'descriptive', text: 'Discuss the structure and function of the cell membrane. Include a description of the fluid mosaic model.', marks: 10, avgScore: 8.2, correct: 41 },
-            { number: 3, type: 'mcq', text: 'Which organelle is responsible for protein synthesis in eukaryotic cells?', marks: 5, avgScore: 4.5, correct: 40 },
-            { number: 4, type: 'short', text: 'Define osmosis and explain how it differs from diffusion.', marks: 5, avgScore: 4.1, correct: 35 },
-            { number: 5, type: 'descriptive', text: 'Describe the stages of mitosis and explain the importance of each stage.', marks: 10, avgScore: 6.9, correct: 32 },
-        ],
-    },
-    {
-        id: 2,
-        title: 'Mid Term - Organic Chemistry',
-        code: 'Chemistry 302',
-        date: 'Oct 18, 2023',
-        dateISO: '2023-10-18',
-        students: 38,
-        evaluated: 38,
-        pending: 0,
-        average: 82,
-        highest: 97,
-        status: 'approved',
-        semester: 'S5',
-        duration: '2 Hours',
-        marks: 100,
-        description:
-            'Mid-term covering organic reaction mechanisms and stereochemistry.',
-        location: 'Hall B',
-        supervisor: 'Prof. Anderson',
-        studentList: [
-            { id: 'STU001', name: 'John Smith', email: 'john.smith@university.edu', score: 95, grade: 'a', selected: true },
-            { id: 'STU002', name: 'Sarah Johnson', email: 'sarah.j@university.edu', score: 88, grade: 'b', selected: true },
-            { id: 'STU003', name: 'Michael Chen', email: 'm.chen@university.edu', score: 82, grade: 'b', selected: true },
-            { id: 'STU004', name: 'Emily Davis', email: 'e.davis@university.edu', score: 76, grade: 'c', selected: true },
-            { id: 'STU005', name: 'David Wilson', email: 'd.wilson@university.edu', score: 91, grade: 'a', selected: true },
-            { id: 'STU006', name: 'Jessica Brown', email: 'j.brown@university.edu', score: 97, grade: 'a', selected: true },
-        ],
-        questions: [
-            { number: 1, type: 'descriptive', text: 'Explain the SN1 and SN2 reaction mechanisms with examples.', marks: 15, avgScore: 12.5, correct: 32 },
-            { number: 2, type: 'mcq', text: 'Which of the following is a chiral molecule?', marks: 5, avgScore: 4.8, correct: 35 },
-            { number: 3, type: 'short', text: 'Define stereochemistry and its importance.', marks: 10, avgScore: 8.1, correct: 30 },
-        ],
-    },
-    {
-        id: 3,
-        title: 'Unit Test - Cell Biology',
-        code: 'Biology 205',
-        date: 'Oct 10, 2023',
-        dateISO: '2023-10-10',
-        students: 42,
-        evaluated: 42,
-        pending: 0,
-        average: 75,
-        highest: 94,
-        status: 'modified',
-        semester: 'S4',
-        duration: '1 Hour',
-        marks: 50,
-        description: 'Unit test on cell structure and function.',
-        location: 'Room 201',
-        supervisor: 'Prof. Anderson',
-        studentList: [
-            { id: 'STU001', name: 'John Smith', email: 'john.smith@university.edu', score: 88, grade: 'b', selected: true },
-            { id: 'STU002', name: 'Sarah Johnson', email: 'sarah.j@university.edu', score: 79, grade: 'c', selected: true },
-            { id: 'STU003', name: 'Michael Chen', email: 'm.chen@university.edu', score: 94, grade: 'a', selected: true },
-            { id: 'STU004', name: 'Emily Davis', email: 'e.davis@university.edu', score: 68, grade: 'c', selected: true },
-        ],
-        questions: [
-            { number: 1, type: 'descriptive', text: 'Compare prokaryotic and eukaryotic cells.', marks: 10, avgScore: 8.2, correct: 38 },
-            { number: 2, type: 'mcq', text: 'Which organelle produces ATP?', marks: 5, avgScore: 4.6, correct: 40 },
-        ],
-    },
-    {
-        id: 4,
-        title: 'Quiz - Genetics',
-        code: 'Biology 310',
-        date: 'Sep 28, 2023',
-        dateISO: '2023-09-28',
-        students: 35,
-        evaluated: 35,
-        pending: 0,
-        average: 81,
-        highest: 98,
-        status: 'approved',
-        semester: 'S5',
-        duration: '45 Minutes',
-        marks: 40,
-        description: 'Quick quiz on Mendelian genetics.',
-        location: 'Online',
-        supervisor: 'Prof. Anderson',
-        studentList: [
-            { id: 'STU001', name: 'John Smith', email: 'john.smith@university.edu', score: 90, grade: 'a', selected: true },
-            { id: 'STU002', name: 'Sarah Johnson', email: 'sarah.j@university.edu', score: 82, grade: 'b', selected: true },
-            { id: 'STU003', name: 'Michael Chen', email: 'm.chen@university.edu', score: 98, grade: 'a', selected: true },
-        ],
-        questions: [
-            { number: 1, type: 'mcq', text: 'What is the probability of offspring being heterozygous from two heterozygous parents?', marks: 5, avgScore: 4.5, correct: 32 },
-            { number: 2, type: 'short', text: 'Define genotype and phenotype.', marks: 5, avgScore: 4.8, correct: 33 },
-        ],
-    },
-    {
-        id: 5,
-        title: 'Final - Molecular Biology',
-        code: 'Biology 405',
-        date: 'Sep 15, 2023',
-        dateISO: '2023-09-15',
-        students: 40,
-        evaluated: 40,
-        pending: 0,
-        average: 79,
-        highest: 95,
-        status: 'approved',
-        semester: 'S6',
-        duration: '3 Hours',
-        marks: 150,
-        description:
-            'Final exam covering DNA replication, transcription, and translation.',
-        location: 'Hall C',
-        supervisor: 'Prof. Anderson',
-        studentList: [
-            { id: 'STU001', name: 'John Smith', email: 'john.smith@university.edu', score: 85, grade: 'b', selected: true },
-            { id: 'STU002', name: 'Sarah Johnson', email: 'sarah.j@university.edu', score: 91, grade: 'a', selected: true },
-            { id: 'STU003', name: 'Michael Chen', email: 'm.chen@university.edu', score: 78, grade: 'c', selected: true },
-        ],
-        questions: [
-            { number: 1, type: 'descriptive', text: 'Describe the process of DNA replication.', marks: 20, avgScore: 16.2, correct: 36 },
-            { number: 2, type: 'descriptive', text: 'Explain the central dogma of molecular biology.', marks: 15, avgScore: 12.8, correct: 38 },
-        ],
-    },
-]
-
 const AVATAR_COLORS = [
     '#1e3a5f',
     '#2563eb',
@@ -332,7 +173,9 @@ function avatarColor(name) {
    ============================================================ */
 
 function PastExams() {
-    const [exams, setExams] = useState(INITIAL_EXAMS)
+    const [exams, setExams] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
     const [search, setSearch] = useState('')
     const [filterOpen, setFilterOpen] = useState(false)
     const [filters, setFilters] = useState({
@@ -348,6 +191,61 @@ function PastExams() {
     const [toast, setToast] = useState('')
 
     const filterRef = useRef(null)
+
+    const fetchExams = () => {
+        let isMounted = true
+        setLoading(true)
+        setError(null)
+        api.get('/api/exams/')
+            .then((items) => {
+                if (isMounted) {
+                    setExams(items.map((exam) => ({
+                        id: exam.examination_id,
+                        title: exam.exam_name,
+                        code: exam.subject,
+                        date: new Date(exam.exam_date).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: '2-digit',
+                            year: 'numeric',
+                        }),
+                        dateISO: exam.exam_date,
+                        students: exam.student_count,
+                        evaluated: exam.evaluated_count,
+                        pending: exam.pending_count,
+                        average: exam.average_score,
+                        highest: exam.highest_score,
+                        status: exam.status === 'completed' ? 'approved' : (exam.status === 'partial' ? 'modified' : 'pending'),
+                        semester: 'S5',
+                        duration: '2 Hours',
+                        marks: Number(exam.total_marks || 0),
+                        description: '',
+                        location: '',
+                        supervisor: '',
+                        studentList: [],
+                        questions: [],
+                    })))
+                }
+            })
+            .catch((err) => {
+                if (isMounted) {
+                    setError(err.message || 'Unable to load exams.')
+                    setToast(err.message || 'Unable to load exams.')
+                }
+            })
+            .finally(() => {
+                if (isMounted) {
+                    setLoading(false)
+                }
+            })
+        return () => {
+            isMounted = false
+        }
+    }
+
+    useEffect(() => {
+        const cleanup = fetchExams()
+        return cleanup
+    }, [])
 
     /* Close filter dropdown on outside click */
     useEffect(() => {
@@ -413,10 +311,48 @@ function PastExams() {
 
     const openExam = exams.find((e) => e.id === openExamId) || null
 
-    const openModal = (examId) => {
+    const openModal = async (examId) => {
         setOpenExamId(examId)
         setCurrentTab('overview')
         setStudentSearch('')
+        try {
+            const detail = await api.get(`/api/exams/${examId}/`)
+            setExams((prev) => prev.map((exam) => exam.id !== examId ? exam : {
+                ...exam,
+                title: detail.exam_name,
+                code: detail.subject,
+                date: new Date(detail.exam_date).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: '2-digit',
+                    year: 'numeric',
+                }),
+                dateISO: detail.exam_date,
+                students: detail.student_count,
+                evaluated: detail.evaluated_count,
+                pending: detail.pending_count,
+                average: detail.average_score,
+                highest: detail.highest_score,
+                marks: Number(detail.total_marks || 0),
+                questions: (detail.questions || []).map((question) => ({
+                    number: question.question_number,
+                    type: question.question_type,
+                    text: question.question_text,
+                    marks: Number(question.max_marks),
+                    avgScore: question.avg_score || 0,
+                    correct: question.avg_score ? Math.round(question.avg_score) : 0,
+                })),
+                studentList: (detail.students || []).map((student) => ({
+                    id: student.roll_number,
+                    name: student.full_name,
+                    email: student.email,
+                    score: student.score || 0,
+                    grade: (student.grade || (student.score >= 90 ? 'a' : (student.score >= 80 ? 'b' : (student.score >= 70 ? 'c' : (student.score >= 60 ? 'd' : 'f'))))).toLowerCase(),
+                    selected: true,
+                })),
+            }))
+        } catch (error) {
+            setToast(error.message || 'Unable to load exam details.')
+        }
     }
 
     const closeModal = () => {
@@ -434,23 +370,21 @@ function PastExams() {
        MODAL ACTIONS
        ============================================================ */
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!openExam) return
-        updateOpenExam((e) => ({
-            ...e,
-            title: e._draftTitle ?? e.title,
-            // All detail fields are already bound to state; only the
-            // normalized "date" string needs recomputing
-            date: new Date(e.dateISO).toLocaleDateString('en-US', {
-                month: 'short',
-                day: '2-digit',
-                year: 'numeric',
-            }),
-        }))
-        setToast('✓ Changes saved successfully')
+        try {
+            await api.patch(`/api/exams/${openExam.id}/`, {
+                exam_name: openExam.title,
+                subject: openExam.code,
+                exam_date: openExam.dateISO,
+            })
+            setToast('✓ Changes saved successfully')
+        } catch (err) {
+            setToast(err.message || 'Unable to save changes.')
+        }
     }
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (!openExam) return
         if (
             !window.confirm(
@@ -459,9 +393,14 @@ function PastExams() {
         ) {
             return
         }
-        setExams((prev) => prev.filter((e) => e.id !== openExam.id))
-        closeModal()
-        setToast('Exam deleted')
+        try {
+            await api.delete(`/api/exams/${openExam.id}/`)
+            setExams((prev) => prev.filter((e) => e.id !== openExam.id))
+            closeModal()
+            setToast('Exam deleted')
+        } catch (err) {
+            setToast(err.message || 'Unable to delete exam.')
+        }
     }
 
     /* Details form field update */
@@ -1158,6 +1097,22 @@ function PastExams() {
        MAIN RENDER
        ============================================================ */
 
+    if (loading) {
+        return <PageLoader message="Loading past examinations..." />
+    }
+
+    if (error) {
+        return <ErrorState message={error} onRetry={fetchExams} />
+    }
+
+    const avgMark = exams.length > 0
+        ? Math.round(exams.reduce((s, e) => s + (Number(e.average) || 0), 0) / exams.length)
+        : 0
+
+    const highestMark = exams.length > 0
+        ? Math.max(0, ...exams.map((e) => Number(e.highest) || 0))
+        : 0
+
     return (
         <div className="past-exams-page">
             <div className="page-header">
@@ -1173,7 +1128,7 @@ function PastExams() {
                 <div className="past-stat-card">
                     <div className="past-stat-label">Evaluated</div>
                     <div className="past-stat-value">
-                        {exams.filter((e) => e.evaluated === e.students).length}
+                        {exams.filter((e) => e.evaluated === e.students && e.students > 0).length}
                     </div>
                 </div>
                 <div className="past-stat-card past-stat-highlight">
@@ -1185,17 +1140,14 @@ function PastExams() {
                 <div className="past-stat-card">
                     <div className="past-stat-label">Average Mark</div>
                     <div className="past-stat-value">
-                        {Math.round(
-                            exams.reduce((s, e) => s + e.average, 0) /
-                            (exams.length || 1)
-                        )}
+                        {avgMark}
                         <span>%</span>
                     </div>
                 </div>
                 <div className="past-stat-card">
                     <div className="past-stat-label">Highest</div>
                     <div className="past-stat-value">
-                        {Math.max(...exams.map((e) => e.highest))}
+                        {highestMark}
                         <span>%</span>
                     </div>
                 </div>

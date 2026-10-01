@@ -1,5 +1,11 @@
 # AI-Assisted Answer Sheet Evaluation System
 
+> **Current infrastructure:** Supabase Auth and Supabase PostgreSQL are the
+> production architecture. Django connects directly to Supabase through
+> `DATABASE_URL`; Docker Compose contains only frontend and backend services.
+> The legacy local-PostgreSQL references below are superseded by the concise
+> [Supabase setup guide](docs/SUPABASE_SETUP.md).
+
 An AI-assisted system for evaluating student answer sheets efficiently and consistently.
 
 This README is intended for **team development**. It explains how to set up the project, run it with Docker, work on frontend/backend features, manage dependencies, use Git, and avoid environment-related issues between team members.

@@ -1,4 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from '../lib/router'
+import { api } from '../lib/api'
+import { supabase } from '../lib/supabase'
 import '../style/Navbar.css'
 import icon from '../assets/Icon.svg'
 
@@ -79,44 +82,109 @@ function LogoutIcon() {
     )
 }
 
-function Navbar({ activePage, onNavigate }) {
+function Navbar({ onNavigate }) {
+    const location = useLocation()
+    const navigate = useNavigate()
     const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [profile, setProfile] = useState(null)
+
+    useEffect(() => {
+        api.get('/api/auth/profile/')
+            .then(setProfile)
+            .catch(() => {})
+    }, [location.pathname])
+
+    const teacherName = profile?.name || 'Teacher'
+    const initials = teacherName
+        .split(' ')
+        .filter(Boolean)
+        .map((n) => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase() || 'T'
 
     const navigationItems = [
         {
             id: 'dashboard',
+            path: '/Dashboard',
             label: 'Dashboard',
             icon: <DashboardIcon />
         },
         {
             id: 'create-exam',
+            path: '/CreateExam',
             label: 'Create Exam',
             icon: <CreateIcon />
         },
         {
             id: 'past-exams',
+            path: '/PastExams',
             label: 'Past Exams',
             icon: <PastExamsIcon />
         },
         {
             id: 'results',
+            path: '/Results',
             label: 'Results',
             icon: <ResultsIcon />
         },
         {
             id: 'students',
+            path: '/Students',
             label: 'Students',
             icon: <StudentsIcon />
         },
         {
             id: 'settings',
+            path: '/Profile',
             label: 'Profile / Settings',
             icon: <SettingsIcon />
         }
     ]
 
-    const navigate = (page) => {
-        onNavigate(page)
+    const currentPath = location.pathname.toLowerCase()
+
+    const isItemActive = (item) => {
+        const itemPath = item.path.toLowerCase()
+        if (itemPath === '/dashboard') {
+            return currentPath === '/dashboard' || currentPath === '/'
+        }
+        if (item.id === 'create-exam') {
+            return currentPath.startsWith('/createexam') || currentPath.startsWith('/create-exam')
+        }
+        if (item.id === 'past-exams') {
+            return currentPath.startsWith('/pastexams') || currentPath.startsWith('/past-exams')
+        }
+        if (item.id === 'settings') {
+            return currentPath.startsWith('/profile') || currentPath.startsWith('/settings')
+        }
+        return currentPath.startsWith(itemPath)
+    }
+
+    const handleNavigate = (path, id) => {
+        navigate(path)
+        if (onNavigate) {
+            onNavigate(id)
+        }
+        setSidebarOpen(false)
+    }
+
+    const handleHelpClick = () => {
+        navigate('/Help')
+        if (onNavigate) {
+            onNavigate('help')
+        }
+        setSidebarOpen(false)
+    }
+
+    const handleLogout = async () => {
+        const { error } = await supabase.auth.signOut()
+        if (error) {
+            console.error('Logout error:', error)
+        }
+        if (onNavigate) {
+            onNavigate('logout')
+        }
         setSidebarOpen(false)
     }
 
@@ -156,16 +224,14 @@ function Navbar({ activePage, onNavigate }) {
                 </div>
 
                 <div className="sidebar-profile">
-
                     <div className="sidebar-avatar">
-                        AN
+                        {initials}
                     </div>
 
                     <div className="sidebar-profile-info">
-                        <h4>prof. ananthu</h4>
-                        <p>Department of computer science</p>
+                        <h4>{teacherName}</h4>
+                        <p>{profile?.email || 'Teacher Workspace'}</p>
                     </div>
-
                 </div>
 
                 <nav className="sidebar-nav">
@@ -174,9 +240,9 @@ function Navbar({ activePage, onNavigate }) {
                         <button
                             key={item.id}
                             className={`nav-item ${
-                                activePage === item.id ? 'active' : ''
+                                isItemActive(item) ? 'active' : ''
                             }`}
-                            onClick={() => navigate(item.id)}
+                            onClick={() => handleNavigate(item.path, item.id)}
                         >
                             <span className="nav-icon">
                                 {item.icon}
@@ -191,8 +257,8 @@ function Navbar({ activePage, onNavigate }) {
                 <div className="sidebar-bottom">
 
                     <button
-                        className="nav-item"
-                        onClick={() => navigate('help')}
+                        className={`nav-item ${currentPath.startsWith('/help') ? 'active' : ''}`}
+                        onClick={handleHelpClick}
                     >
                         <span className="nav-icon">
                             <HelpIcon />
@@ -203,7 +269,7 @@ function Navbar({ activePage, onNavigate }) {
 
                     <button
                         className="nav-item"
-                        onClick={() => navigate('logout')}
+                        onClick={handleLogout}
                     >
                         <span className="nav-icon">
                             <LogoutIcon />

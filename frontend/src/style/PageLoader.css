@@ -1,0 +1,143 @@
+/* ============================================================
+   PageLoader & ErrorState Styles
+   ============================================================ */
+
+.page-loader-container {
+    min-height: 55vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 32px 16px;
+    text-align: center;
+}
+
+.page-loader-container.inline {
+    min-height: 180px;
+    padding: 24px 16px;
+}
+
+.page-loader-spinner {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 3.5px solid #e2e8f0;
+    border-top-color: #1e3a5f;
+    border-right-color: #2563eb;
+    animation: page-loader-spin 0.85s linear infinite;
+    flex-shrink: 0;
+}
+
+.page-loader-container.inline .page-loader-spinner {
+    width: 34px;
+    height: 34px;
+    border-width: 3px;
+}
+
+@keyframes page-loader-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.page-loader-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.page-loader-message {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+}
+
+.page-loader-container.inline .page-loader-message {
+    font-size: 13.5px;
+}
+
+.page-loader-subtitle {
+    font-size: 13px;
+    color: #64748b;
+    margin: 0;
+}
+
+/* ============================================================
+   ErrorState Component Styles
+   ============================================================ */
+
+.page-error-container {
+    min-height: 55vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 32px 16px;
+    text-align: center;
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+.page-error-container.inline {
+    min-height: 180px;
+    padding: 24px 16px;
+}
+
+.page-error-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #fee2e2;
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.page-error-icon svg {
+    width: 26px;
+    height: 26px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.page-error-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.page-error-message {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.page-error-retry-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 18px;
+    background: #1e3a5f;
+    color: #ffffff;
+    font-size: 13.5px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    margin-top: 4px;
+}
+
+.page-error-retry-btn:hover {
+    background: #0f1f3a;
+}

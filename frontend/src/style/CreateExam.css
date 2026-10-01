@@ -32,7 +32,8 @@
     --sh-s: 0 1px 2px rgba(0, 0, 0, 0.04);
 
     width: 100%;
-    max-width: 1200px;
+    max-width: 1600px;
+    margin: 0 auto;
     color: var(--g800);
 }
 

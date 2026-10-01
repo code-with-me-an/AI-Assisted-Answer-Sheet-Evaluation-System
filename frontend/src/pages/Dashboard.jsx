@@ -1,3 +1,7 @@
+import { useEffect, useState } from 'react'
+import { useNavigate } from '../lib/router'
+import { api } from '../lib/api'
+import { PageLoader, ErrorState } from '../components/PageLoader'
 import '../style/Dashboard.css'
 
 function CreateExamIcon() {
@@ -18,41 +22,30 @@ function ArchiveIcon() {
     )
 }
 
-function RecentExams({ onNavigate }) {
-    const exams = [
-        {
-            name: 'Biology Midterm',
-            date: 'Sep 08, 2026',
-            students: '64',
-            status: 'Completed',
-            statusType: 'completed'
-        },
-        {
-            name: 'Physics Unit Test',
-            date: 'Sep 05, 2026',
-            students: '52',
-            status: 'In Progress',
-            statusType: 'progress'
-        },
-        {
-            name: 'Chemistry Quiz',
-            date: 'Sep 02, 2026',
-            students: '48',
-            status: 'Review',
-            statusType: 'review'
-        },
-        {
-            name: 'Environmental Science',
-            date: 'Aug 28, 2026',
-            students: '71',
-            status: 'Completed',
-            statusType: 'completed'
+function RecentExams({ onNavigate, exams }) {
+    const navigate = useNavigate()
+    const rows = (exams || []).map((exam) => ({
+        id: exam.examination_id,
+        name: exam.exam_name,
+        date: new Date(exam.exam_date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: '2-digit',
+            year: 'numeric',
+        }),
+        students: exam.student_count,
+        status: exam.status === 'completed' ? 'Completed' : (exam.status === 'partial' ? 'In Progress' : 'Created'),
+        statusType: exam.status === 'completed' ? 'completed' : (exam.status === 'partial' ? 'progress' : 'review'),
+    }))
+
+    const handleViewAll = () => {
+        navigate('/PastExams')
+        if (onNavigate) {
+            onNavigate('past-exams')
         }
-    ]
+    }
 
     return (
         <section className="dashboard-panel exams-panel">
-
             <div className="panel-header">
                 <div>
                     <h2>Recent Exams</h2>
@@ -61,7 +54,7 @@ function RecentExams({ onNavigate }) {
 
                 <button
                     className="text-button"
-                    onClick={() => onNavigate('past-exams')}
+                    onClick={handleViewAll}
                 >
                     View all →
                 </button>
@@ -79,60 +72,51 @@ function RecentExams({ onNavigate }) {
                     </thead>
 
                     <tbody>
-                        {exams.map((exam) => (
-                            <tr key={exam.name}>
-                                <td className="exam-name">
-                                    {exam.name}
-                                </td>
-
-                                <td>{exam.date}</td>
-
-                                <td>{exam.students}</td>
-
-                                <td>
-                                    <span
-                                        className={`status-badge ${exam.statusType}`}
-                                    >
-                                        {exam.status}
-                                    </span>
+                        {rows.length === 0 ? (
+                            <tr>
+                                <td colSpan={4} style={{ textAlign: 'center', padding: '24px', color: 'var(--g500)' }}>
+                                    No examinations created yet.
                                 </td>
                             </tr>
-                        ))}
+                        ) : (
+                            rows.map((exam) => (
+                                <tr key={exam.id || exam.name}>
+                                    <td className="exam-name">
+                                        {exam.name}
+                                    </td>
+
+                                    <td>{exam.date}</td>
+
+                                    <td>{exam.students}</td>
+
+                                    <td>
+                                        <span
+                                            className={`status-badge ${exam.statusType}`}
+                                        >
+                                            {exam.status}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>
-
         </section>
     )
 }
 
-function RecentActivity() {
-    const activities = [
+function RecentActivity({ activities }) {
+    const list = activities && activities.length > 0 ? activities : [
         {
-            title: 'Biology Midterm completed',
-            description: '64 answer sheets evaluated',
-            time: 'Today, 10:42 AM'
+            title: 'Workspace ready',
+            description: 'Start by creating your first examination.',
+            time: 'Just now',
         },
-        {
-            title: 'Physics Unit Test uploaded',
-            description: '52 student submissions received',
-            time: 'Yesterday, 3:18 PM'
-        },
-        {
-            title: 'Chemistry Quiz requires review',
-            description: '12 evaluations are pending',
-            time: 'Sep 02, 11:30 AM'
-        },
-        {
-            title: 'New exam created',
-            description: 'Environmental Science',
-            time: 'Aug 28, 9:15 AM'
-        }
     ]
 
     return (
         <section className="dashboard-panel activity-panel">
-
             <div className="panel-header">
                 <div>
                     <h2>Recent Activity</h2>
@@ -141,7 +125,7 @@ function RecentActivity() {
             </div>
 
             <div className="activity-list">
-                {activities.map((activity, index) => (
+                {list.map((activity, index) => (
                     <div
                         className="activity-item"
                         key={`${activity.title}-${index}`}
@@ -156,17 +140,68 @@ function RecentActivity() {
                     </div>
                 ))}
             </div>
-
         </section>
     )
 }
 
 function Dashboard({ onNavigate }) {
+    const navigate = useNavigate()
+    const [data, setData] = useState(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
+
+    const fetchDashboard = () => {
+        let isMounted = true
+        setLoading(true)
+        setError(null)
+        api.get('/api/dashboard/')
+            .then((res) => {
+                if (isMounted) setData(res)
+            })
+            .catch((err) => {
+                if (isMounted) setError(err.message || 'Unable to load dashboard data.')
+            })
+            .finally(() => {
+                if (isMounted) setLoading(false)
+            })
+        return () => {
+            isMounted = false
+        }
+    }
+
+    useEffect(() => {
+        const cleanup = fetchDashboard()
+        return cleanup
+    }, [])
+
+    const stats = data?.statistics || {}
+
+    const handleCreateExam = () => {
+        navigate('/CreateExam')
+        if (onNavigate) {
+            onNavigate('create-exam')
+        }
+    }
+
+    const handlePastExams = () => {
+        navigate('/PastExams')
+        if (onNavigate) {
+            onNavigate('past-exams')
+        }
+    }
+
+    if (loading) {
+        return <PageLoader message="Loading dashboard overview..." />
+    }
+
+    if (error) {
+        return <ErrorState message={error} onRetry={fetchDashboard} />
+    }
+
     return (
         <div className="dashboard">
-
             <header className="main-header">
-                <h1>Good morning, Prof. Ananthu TP</h1>
+                <h1>Good morning, {data?.teacher?.name || 'Teacher'}</h1>
 
                 <p>
                     Here is an overview of your evaluation activities.
@@ -174,9 +209,7 @@ function Dashboard({ onNavigate }) {
             </header>
 
             <div className="top-cards">
-
                 <div className="action-card">
-
                     <div className="action-card-icon dark">
                         <CreateExamIcon />
                     </div>
@@ -191,15 +224,13 @@ function Dashboard({ onNavigate }) {
 
                     <button
                         className="btn btn-primary"
-                        onClick={() => onNavigate('create-exam')}
+                        onClick={handleCreateExam}
                     >
                         + Create Exam
                     </button>
-
                 </div>
 
                 <div className="action-card">
-
                     <div className="action-card-icon light">
                         <ArchiveIcon />
                     </div>
@@ -215,34 +246,31 @@ function Dashboard({ onNavigate }) {
 
                     <button
                         className="btn btn-outline"
-                        onClick={() => onNavigate('past-exams')}
+                        onClick={handlePastExams}
                     >
                         View Archive →
                     </button>
-
                 </div>
-
             </div>
 
             <div className="stats-row">
-
                 <div className="stat-card">
                     <div className="stat-label">
                         Total Exams
                     </div>
 
                     <div className="stat-value">
-                        42
+                        {stats.total_exams ?? 0}
                     </div>
                 </div>
 
                 <div className="stat-card">
                     <div className="stat-label">
-                        In Progress
+                        Total Students
                     </div>
 
                     <div className="stat-value">
-                        3
+                        {stats.total_students ?? 0}
                     </div>
                 </div>
 
@@ -252,7 +280,7 @@ function Dashboard({ onNavigate }) {
                     </div>
 
                     <div className="stat-value">
-                        12
+                        {stats.pending_review ?? 0}
                     </div>
                 </div>
 
@@ -262,20 +290,15 @@ function Dashboard({ onNavigate }) {
                     </div>
 
                     <div className="stat-value">
-                        1,204
+                        {stats.evaluations ?? 0}
                     </div>
                 </div>
-
             </div>
 
             <div className="content-grid">
-
-                <RecentExams onNavigate={onNavigate} />
-
-                <RecentActivity />
-
+                <RecentExams onNavigate={onNavigate} exams={data?.recent_exams || []} />
+                <RecentActivity activities={data?.recent_activity || []} />
             </div>
-
         </div>
     )
 }

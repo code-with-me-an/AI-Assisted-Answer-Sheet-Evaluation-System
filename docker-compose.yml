@@ -11,6 +11,9 @@ services:
       - /app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
     depends_on:
       - backend
     command: npm run dev -- --host 0.0.0.0
@@ -24,25 +27,15 @@ services:
     volumes:
       - ./backend:/app
     environment:
-      - DB_NAME=autograde
-      - DB_USER=autograde
-      - DB_PASSWORD=autograde_password
-      - DB_HOST=db
-      - DB_PORT=5432
-    depends_on:
-      - db
+      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_SSLMODE=${DATABASE_SSLMODE:-require}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_JWKS_URL=${SUPABASE_JWKS_URL:-}
+      - SUPABASE_JWT_ISSUER=${SUPABASE_JWT_ISSUER:-}
+      - SUPABASE_JWT_AUDIENCE=${SUPABASE_JWT_AUDIENCE:-authenticated}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET:-}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DJANGO_DEBUG=${DJANGO_DEBUG:-true}
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
     command: python manage.py runserver 0.0.0.0:8000
-
-  db:
-    image: postgres:16
-    environment:
-      - POSTGRES_DB=autograde
-      - POSTGRES_USER=autograde
-      - POSTGRES_PASSWORD=autograde_password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-volumes:
-  postgres_data:

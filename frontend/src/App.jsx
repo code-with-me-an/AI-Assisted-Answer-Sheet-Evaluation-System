@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { Routes, Route, Navigate, useNavigate, useLocation } from './lib/router'
 
 import { supabase } from './lib/supabase'
+import { syncTeacherProfile } from './lib/api'
 
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -16,8 +18,9 @@ import './App.css'
 
 function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(false)
-    const [activePage, setActivePage] = useState('dashboard')
     const [authLoading, setAuthLoading] = useState(true)
+    const navigate = useNavigate()
+    const location = useLocation()
 
     useEffect(() => {
         let mounted = true
@@ -32,6 +35,12 @@ function App() {
             if (mounted) {
                 setIsLoggedIn(!!data?.session)
                 setAuthLoading(false)
+            }
+
+            if (data?.session) {
+                syncTeacherProfile().catch((syncError) => {
+                    console.error('Unable to synchronize teacher profile:', syncError)
+                })
             }
         }
 
@@ -48,7 +57,9 @@ function App() {
                 setIsLoggedIn(!!session)
 
                 if (session) {
-                    setActivePage('dashboard')
+                    syncTeacherProfile().catch((syncError) => {
+                        console.error('Unable to synchronize teacher profile:', syncError)
+                    })
                 }
             }
         )
@@ -59,29 +70,11 @@ function App() {
         }
     }, [])
 
-    const handleLogin = (user) => {
-        console.log('Successfully logged in:', user)
-
+    const handleLogin = () => {
         setIsLoggedIn(true)
-        setActivePage('dashboard')
-    }
-
-    const handleNavigate = async (page) => {
-        if (page === 'logout') {
-            const { error } = await supabase.auth.signOut()
-
-            if (error) {
-                console.error('Logout error:', error)
-                return
-            }
-
-            setIsLoggedIn(false)
-            setActivePage('dashboard')
-
-            return
+        if (location.pathname === '/' || location.pathname.toLowerCase() === '/login') {
+            navigate('/Dashboard')
         }
-
-        setActivePage(page)
     }
 
     if (authLoading) {
@@ -96,47 +89,45 @@ function App() {
         return <Login onLogin={handleLogin} />
     }
 
-    const renderPage = () => {
-        switch (activePage) {
-            case 'dashboard':
-                return <Dashboard onNavigate={handleNavigate} />
-
-            case 'create-exam':
-                return <CreateExam />
-
-            case 'past-exams':
-                return <PastExams />
-
-            case 'results':
-                return <Results />
-
-            case 'students':
-                return <Students />
-
-            case 'settings':
-                return <Profile />
-
-            case 'help':
-                return (
-                    <div className="placeholder-page">
-                        <h1>Help Center</h1>
-                        <p>
-                            Help and documentation will be available here.
-                        </p>
-                    </div>
-                )
-
-            default:
-                return <Dashboard onNavigate={handleNavigate} />
-        }
-    }
-
     return (
-        <MainLayout
-            activePage={activePage}
-            onNavigate={handleNavigate}
-        >
-            {renderPage()}
+        <MainLayout>
+            <Routes>
+                {/* Conceptual primary routes with PascalCase */}
+                <Route path="/Dashboard" element={<Dashboard />} />
+                <Route path="/CreateExam" element={<CreateExam />} />
+                <Route path="/PastExams" element={<PastExams />} />
+                <Route path="/Results" element={<Results />} />
+                <Route path="/Students" element={<Students />} />
+                <Route path="/Profile" element={<Profile />} />
+                <Route
+                    path="/Help"
+                    element={
+                        <div className="placeholder-page">
+                            <h1>Help Center</h1>
+                            <p>Help and documentation will be available here.</p>
+                        </div>
+                    }
+                />
+
+                {/* Lowercase aliases / direct route aliases */}
+                <Route path="/dashboard" element={<Navigate to="/Dashboard" replace />} />
+                <Route path="/create-exam" element={<Navigate to="/CreateExam" replace />} />
+                <Route path="/createexam" element={<Navigate to="/CreateExam" replace />} />
+                <Route path="/past-exams" element={<Navigate to="/PastExams" replace />} />
+                <Route path="/pastexams" element={<Navigate to="/PastExams" replace />} />
+                <Route path="/results" element={<Navigate to="/Results" replace />} />
+                <Route path="/students" element={<Navigate to="/Students" replace />} />
+                <Route path="/profile" element={<Navigate to="/Profile" replace />} />
+                <Route path="/settings" element={<Navigate to="/Profile" replace />} />
+                <Route path="/Settings" element={<Navigate to="/Profile" replace />} />
+                <Route path="/help" element={<Navigate to="/Help" replace />} />
+
+                {/* Default route */}
+                <Route path="/" element={<Navigate to="/Dashboard" replace />} />
+
+                {/* Unknown fallback route */}
+                <Route path="*" element={<Navigate to="/Dashboard" replace />} />
+            </Routes>
         </MainLayout>
     )
 }

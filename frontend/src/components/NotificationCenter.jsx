@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from '../lib/router'
 import '../style/NotificationCenter.css'
 
 function BellIcon() {
@@ -71,7 +72,7 @@ const initialNotifications = [
         message: 'Biology Midterm evaluation has been completed.',
         time: '2 minutes ago',
         read: false,
-        targetPage: 'results'
+        targetPage: 'results',
     },
     {
         id: 2,
@@ -80,7 +81,7 @@ const initialNotifications = [
         message: '12 answer sheets are waiting for your review.',
         time: '15 minutes ago',
         read: false,
-        targetPage: 'results'
+        targetPage: 'results',
     },
     {
         id: 3,
@@ -89,7 +90,7 @@ const initialNotifications = [
         message: 'Physics Unit Test was successfully created.',
         time: '1 hour ago',
         read: false,
-        targetPage: 'past-exams'
+        targetPage: 'past-exams',
     },
     {
         id: 4,
@@ -98,7 +99,7 @@ const initialNotifications = [
         message: '52 student submissions have been received.',
         time: 'Yesterday',
         read: true,
-        targetPage: 'past-exams'
+        targetPage: 'past-exams',
     },
     {
         id: 5,
@@ -107,11 +108,22 @@ const initialNotifications = [
         message: 'Your evaluation workspace is ready to use.',
         time: '2 days ago',
         read: true,
-        targetPage: 'dashboard'
-    }
+        targetPage: 'dashboard',
+    },
 ]
 
+const TARGET_ROUTE_MAP = {
+    'dashboard': '/Dashboard',
+    'create-exam': '/CreateExam',
+    'past-exams': '/PastExams',
+    'results': '/Results',
+    'students': '/Students',
+    'profile': '/Profile',
+    'settings': '/Profile',
+}
+
 function NotificationCenter({ onNavigate }) {
+    const navigate = useNavigate()
     const [isOpen, setIsOpen] = useState(false)
     const [notifications, setNotifications] = useState(
         initialNotifications
@@ -173,7 +185,7 @@ function NotificationCenter({ onNavigate }) {
         setNotifications((current) =>
             current.map((notification) => ({
                 ...notification,
-                read: true
+                read: true,
             }))
         )
     }
@@ -181,8 +193,12 @@ function NotificationCenter({ onNavigate }) {
     const handleNotificationClick = (notification) => {
         markAsRead(notification.id)
 
-        if (notification.targetPage && onNavigate) {
-            onNavigate(notification.targetPage)
+        if (notification.targetPage) {
+            const route = TARGET_ROUTE_MAP[notification.targetPage] || `/${notification.targetPage}`
+            navigate(route)
+            if (onNavigate) {
+                onNavigate(notification.targetPage)
+            }
         }
 
         setIsOpen(false)
@@ -325,7 +341,7 @@ function NotificationCenter({ onNavigate }) {
                             type="button"
                             onClick={() => {
                                 setIsOpen(false)
-
+                                navigate('/Dashboard')
                                 if (onNavigate) {
                                     onNavigate('dashboard')
                                 }

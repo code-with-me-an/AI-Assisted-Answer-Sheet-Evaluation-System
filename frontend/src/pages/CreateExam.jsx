@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { api } from '../lib/api'
+import { PageLoader } from '../components/PageLoader'
 import '../style/CreateExam.css'
 
 /* ============================================================
@@ -138,67 +140,6 @@ const QUESTION_TYPES = {
 
 const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
 
-const INITIAL_STUDENTS = [
-    { id: 'STU001', name: 'John Smith', email: 'john.smith@university.edu', selected: true },
-    { id: 'STU002', name: 'Sarah Johnson', email: 'sarah.j@university.edu', selected: true },
-    { id: 'STU003', name: 'Michael Chen', email: 'm.chen@university.edu', selected: true },
-    { id: 'STU004', name: 'Emily Davis', email: 'e.davis@university.edu', selected: true },
-    { id: 'STU005', name: 'David Wilson', email: 'd.wilson@university.edu', selected: false },
-    { id: 'STU006', name: 'Jessica Brown', email: 'j.brown@university.edu', selected: true },
-    { id: 'STU007', name: 'Daniel Martinez', email: 'd.martinez@university.edu', selected: true },
-    { id: 'STU008', name: 'Sophia Taylor', email: 's.taylor@university.edu', selected: false },
-]
-
-const INITIAL_DETAILS = {
-    title: 'Midterm Examination',
-    subject: 'Biology',
-    semester: 'S5',
-    date: '2026-10-24',
-    duration: '2 Hours',
-    marks: 100,
-}
-
-// Placeholder questions used when an upload is "processed"
-const SAMPLE_QUESTIONS = [
-    {
-        number: 1,
-        type: 'descriptive',
-        text: 'Explain the process of photosynthesis and describe the role of chlorophyll in the light-dependent reactions.',
-        marks: 10,
-        status: 'ok',
-    },
-    {
-        number: 2,
-        type: 'descriptive',
-        text: 'Discuss the structure and function of the cell membrane. Include a description of the fluid mosaic model.',
-        marks: 10,
-        status: 'ok',
-    },
-    {
-        number: 3,
-        type: 'mcq',
-        text: 'Which organelle is responsible for protein synthesis in eukaryotic cells?',
-        marks: 5,
-        options: ['Mitochondria', 'Ribosome', 'Golgi apparatus', 'Lysosome'],
-        correctAnswer: 1,
-        status: 'ok',
-    },
-    {
-        number: 4,
-        type: 'short',
-        text: 'Define osmosis and explain how it differs from diffusion.',
-        marks: 5,
-        status: 'ok',
-    },
-    {
-        number: 5,
-        type: 'descriptive',
-        text: 'Describe the stages of mitosis and explain the importance of each stage.',
-        marks: 10,
-        status: 'warning',
-    },
-]
-
 /* ============================================================
    HELPERS
    ============================================================ */
@@ -209,25 +150,28 @@ function formatFileSize(bytes) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-function initials(name) {
-    return name
-        .split(' ')
-        .map((part) => part[0])
-        .join('')
-        .slice(0, 2)
-        .toUpperCase()
-}
-
 /* ============================================================
    MAIN COMPONENT
    ============================================================ */
 
 function CreateExam() {
     const [step, setStep] = useState(1)
-    const [details, setDetails] = useState(INITIAL_DETAILS)
+    const [details, setDetails] = useState({
+        title: '',
+        subject: '',
+        semester: '',
+        date: '',
+        duration: '',
+        marks: '',
+    })
+
+    /* --- Draft Persistence State --- */
+    const [draftId, setDraftId] = useState(null)
+    const [isSavingDraft, setIsSavingDraft] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
     /* --- Question Paper state --- */
-    const [qpSource, setQpSource] = useState(null) // null | 'upload' | 'manual'
+    const [qpSource, setQpSource] = useState('manual') // null | 'upload' | 'manual'
     const [qpFile, setQpFile] = useState(null)
     const [qpDocType, setQpDocType] = useState(null)
     const [qpState, setQpState] = useState('idle') // idle | doc-type | processing | complete
@@ -239,43 +183,175 @@ function CreateExam() {
     const [processingDone, setProcessingDone] = useState(false)
 
     /* --- Answer Key state --- */
-    const [akSource, setAkSource] = useState(null) // null | 'upload' | 'manual'
+    const [akSource, setAkSource] = useState('manual') // null | 'upload' | 'manual'
     const [akFile, setAkFile] = useState(null)
     const [akDocType, setAkDocType] = useState(null)
     const [akState, setAkState] = useState('idle') // idle | doc-type | processing | editing | confirmed
-    const [akAnswers, setAkAnswers] = useState({}) // { [qNumber]: answerObj }
+    const [akAnswers, setAkAnswers] = useState({})
     const [selectedQNumber, setSelectedQNumber] = useState(1)
 
     /* --- Students --- */
-    const [students, setStudents] = useState(INITIAL_STUDENTS)
+    const [students, setStudents] = useState([])
+    const [loadingStudents, setLoadingStudents] = useState(true)
     const [studentSearch, setStudentSearch] = useState('')
 
     /* --- Modals --- */
     const [questionModal, setQuestionModal] = useState(null)
-    // null = closed, { index: null | number } = open (add or edit)
     const [studentModal, setStudentModal] = useState(false)
-    const [editModal, setEditModal] = useState(null) // index into qpQuestions
+    const [editModal, setEditModal] = useState(null)
     const [successModal, setSuccessModal] = useState(false)
     const [successMessage, setSuccessMessage] = useState({ title: '', message: '' })
 
     /* --- Toast --- */
     const [toast, setToast] = useState('')
+    const [toastType, setToastType] = useState('success') // 'success' | 'error'
+
+    const showToast = (message, type = 'success') => {
+        setToast(message)
+        setToastType(type)
+    }
+
+    /* Load teacher's registered students from backend */
+    useEffect(() => {
+        let isMounted = true
+        setLoadingStudents(true)
+        api.get('/api/students/')
+            .then((items) => {
+                if (isMounted) {
+                    if (Array.isArray(items)) {
+                        setStudents(
+                            items.map((s) => ({
+                                id: s.roll_number,
+                                name: s.full_name,
+                                email: s.email || `${s.roll_number.toLowerCase()}@university.edu`,
+                                selected: true,
+                            }))
+                        )
+                    } else {
+                        setStudents([])
+                    }
+                    setLoadingStudents(false)
+                }
+            })
+            .catch((err) => {
+                if (isMounted) {
+                    console.error('Failed to load students:', err)
+                    setStudents([])
+                    setLoadingStudents(false)
+                }
+            })
+        return () => {
+            isMounted = false
+        }
+    }, [])
 
     useEffect(() => {
         if (!toast) return undefined
-        const t = setTimeout(() => setToast(''), 2800)
+        const t = setTimeout(() => setToast(''), 3200)
         return () => clearTimeout(t)
     }, [toast])
 
+    /* Ensure answer key state stays synchronized when questions change */
+    useEffect(() => {
+        setAkAnswers((prev) => {
+            const next = { ...prev }
+            qpQuestions.forEach((q) => {
+                if (!next[q.number]) {
+                    next[q.number] = {
+                        reference: '',
+                        concepts: [],
+                        criteria: [{ name: 'Core concept', marks: q.marks || 0 }],
+                        guidance: '',
+                        reviewed: false,
+                        aiGenerated: false,
+                    }
+                }
+            })
+            return next
+        })
+    }, [qpQuestions])
+
+    /* Compute total calculated marks from questions */
+    const calculatedTotalMarks = useMemo(() => {
+        return qpQuestions.reduce((sum, q) => sum + (Number(q.marks) || 0), 0)
+    }, [qpQuestions])
+
     /* ============================================================
-       STEP NAVIGATION
+       STEP VALIDATION LOGIC
        ============================================================ */
 
-    const goNext = () => {
-        if (step < 5) {
-            if (step === 1) {
-                // details already bound to state
+    const validateStep = (stepNumber) => {
+        if (stepNumber === 1) {
+            if (!details.title?.trim()) {
+                return { valid: false, message: 'Please enter the exam title.' }
             }
+            if (!details.subject?.trim()) {
+                return { valid: false, message: 'Please enter the exam subject.' }
+            }
+            if (!details.date?.trim()) {
+                return { valid: false, message: 'Please select an exam date.' }
+            }
+            return { valid: true }
+        }
+
+        if (stepNumber === 2) {
+            if (qpQuestions.length === 0) {
+                return { valid: false, message: 'Please add at least one question to the exam.' }
+            }
+            const numbers = qpQuestions.map((q) => Number(q.number))
+            if (new Set(numbers).size !== numbers.length) {
+                return { valid: false, message: 'Question numbers must be unique.' }
+            }
+            for (const q of qpQuestions) {
+                if (!q.text?.trim()) {
+                    return { valid: false, message: `Question ${q.number} text cannot be empty.` }
+                }
+                const marks = Number(q.marks)
+                if (isNaN(marks) || marks <= 0) {
+                    return { valid: false, message: `Question ${q.number} must have a valid positive marks value.` }
+                }
+            }
+            return { valid: true }
+        }
+
+        if (stepNumber === 3) {
+            if (qpQuestions.length === 0) {
+                return { valid: false, message: 'No questions to provide answer keys for.' }
+            }
+            for (const q of qpQuestions) {
+                const answer = akAnswers[q.number]
+                if (!answer?.reference?.trim()) {
+                    return {
+                        valid: false,
+                        message: `Please provide a reference answer for Question ${q.number}.`,
+                    }
+                }
+            }
+            return { valid: true }
+        }
+
+        if (stepNumber === 4) {
+            const selectedCount = students.filter((s) => s.selected).length
+            if (selectedCount === 0) {
+                return {
+                    valid: false,
+                    message: 'Please select at least one student before proceeding to review.',
+                }
+            }
+            return { valid: true }
+        }
+
+        return { valid: true }
+    }
+
+    const goNext = () => {
+        const validation = validateStep(step)
+        if (!validation.valid) {
+            showToast(validation.message, 'error')
+            return
+        }
+
+        if (step < 5) {
             setStep((s) => s + 1)
             window.scrollTo({ top: 0, behavior: 'smooth' })
         } else {
@@ -290,11 +366,23 @@ function CreateExam() {
         }
     }
 
-    const goToStep = (n) => {
-        if (n >= 1 && n <= 5) {
-            setStep(n)
+    const goToStep = (targetStep) => {
+        if (targetStep < step) {
+            setStep(targetStep)
             window.scrollTo({ top: 0, behavior: 'smooth' })
+            return
         }
+
+        // Validate intermediate steps before jumping forward
+        for (let s = step; s < targetStep; s++) {
+            const validation = validateStep(s)
+            if (!validation.valid) {
+                showToast(validation.message, 'error')
+                return
+            }
+        }
+        setStep(targetStep)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
     /* ============================================================
@@ -340,7 +428,6 @@ function CreateExam() {
         if (!processingKind) return undefined
         if (processingStepIdx < processingSteps.length) return undefined
 
-        // All steps done — finalize
         setProcessingDone(true)
 
         const timeout = setTimeout(() => {
@@ -348,25 +435,14 @@ function CreateExam() {
                 setQpQuestions(SAMPLE_QUESTIONS.map((q) => ({ ...q })))
                 setQpState('complete')
             } else if (processingKind === 'ak') {
-                // Build answer keys for each question
                 const answers = {}
                 SAMPLE_QUESTIONS.forEach((q) => {
                     answers[q.number] = {
-                        reference:
-                            q.type === 'mcq'
-                                ? q.options[q.correctAnswer] || ''
-                                : `A complete reference answer for Q${q.number} covering the core concept, supporting details, and key terminology.`,
-                        concepts:
-                            q.type === 'mcq'
-                                ? ['Correct option', 'Core concept']
-                                : ['Core concept', 'Explanation', 'Supporting points', 'Terminology'],
-                        criteria: [
-                            { name: 'Correct understanding of the concept', marks: Math.max(1, Math.round(q.marks * 0.4)) },
-                            { name: 'Relevant explanation and supporting details', marks: Math.max(1, Math.round(q.marks * 0.35)) },
-                            { name: 'Clarity and completeness', marks: Math.max(1, q.marks - Math.round(q.marks * 0.4) - Math.round(q.marks * 0.35)) },
-                        ],
-                        guidance: 'Award marks according to the presence and correctness of the required concepts.',
-                        reviewed: false,
+                        reference: `A comprehensive reference answer for Q${q.number} covering the primary concepts, terminology, and core points.`,
+                        concepts: ['Core concept', 'Supporting details'],
+                        criteria: [{ name: 'Understanding and accuracy', marks: q.marks }],
+                        guidance: 'Award marks based on coverage and accuracy.',
+                        reviewed: true,
                         aiGenerated: akSource === 'ai',
                     }
                 })
@@ -378,8 +454,7 @@ function CreateExam() {
         }, 1200)
 
         return () => clearTimeout(timeout)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [processingStepIdx, processingSteps.length, processingKind])
+    }, [processingStepIdx, processingSteps.length, processingKind, akSource])
 
     /* ============================================================
        QUESTION PAPER HANDLERS
@@ -430,30 +505,23 @@ function CreateExam() {
     }
 
     const startManualAnswerKey = () => {
-        const answers = {}
-
+        const answers = { ...akAnswers }
         qpQuestions.forEach((question) => {
-            answers[question.number] = {
-                reference: '',
-                concepts: [],
-                criteria: [
-                    {
-                        name: '',
-                        marks: question.marks || 0,
-                    },
-                ],
-                guidance: '',
-                reviewed: false,
-                aiGenerated: false,
+            if (!answers[question.number]) {
+                answers[question.number] = {
+                    reference: '',
+                    concepts: [],
+                    criteria: [{ name: 'Correct understanding', marks: question.marks || 0 }],
+                    guidance: '',
+                    reviewed: false,
+                    aiGenerated: false,
+                }
             }
         })
-
         setAkAnswers(answers)
-
         if (qpQuestions.length > 0) {
             setSelectedQNumber(qpQuestions[0].number)
         }
-
         setAkState('editing')
     }
 
@@ -462,63 +530,72 @@ function CreateExam() {
         setAkFile(null)
         setAkDocType(null)
         setAkState('idle')
-        setAkAnswers({})
     }
 
     /* ============================================================
        ANSWER KEY EDITOR HANDLERS
        ============================================================ */
 
-    const currentAnswer = akAnswers[selectedQNumber]
-    const currentQuestion = qpQuestions.find((q) => q.number === selectedQNumber)
+    const activeQNum = qpQuestions.some((q) => q.number === selectedQNumber)
+        ? selectedQNumber
+        : (qpQuestions[0]?.number || 1)
+    const currentQuestion = qpQuestions.find((q) => q.number === activeQNum) || qpQuestions[0]
+    const currentAnswer = (currentQuestion && akAnswers[currentQuestion.number]) || {
+        reference: '',
+        concepts: [],
+        criteria: [{ name: 'Core concept', marks: currentQuestion?.marks || 0 }],
+        guidance: '',
+        reviewed: false,
+        aiGenerated: false,
+    }
 
     const updateAnswer = (field, value) => {
-        setAkAnswers((prev) => ({
-            ...prev,
-            [selectedQNumber]: { ...prev[selectedQNumber], [field]: value, reviewed: false },
-        }))
-    }
-
-    const addConcept = (concept) => {
-        if (!concept.trim()) return
-        const a = akAnswers[selectedQNumber]
-        updateAnswer('concepts', [...a.concepts, concept.trim()])
-    }
-
-    const removeConcept = (index) => {
-        const a = akAnswers[selectedQNumber]
-        updateAnswer('concepts', a.concepts.filter((_, i) => i !== index))
-    }
-
-    const updateCriterion = (index, field, value) => {
-        const a = akAnswers[selectedQNumber]
-        const criteria = a.criteria.map((c, i) => (i === index ? { ...c, [field]: value } : c))
-        updateAnswer('criteria', criteria)
-    }
-
-    const addCriterion = () => {
-        const a = akAnswers[selectedQNumber]
-        updateAnswer('criteria', [...a.criteria, { name: 'New criterion', marks: 1 }])
-    }
-
-    const removeCriterion = (index) => {
-        const a = akAnswers[selectedQNumber]
-        updateAnswer('criteria', a.criteria.filter((_, i) => i !== index))
+        const qNum = currentQuestion ? currentQuestion.number : selectedQNumber
+        setAkAnswers((prev) => {
+            const existing = prev[qNum] || {
+                reference: '',
+                concepts: [],
+                criteria: [{ name: 'Core concept', marks: currentQuestion?.marks || 0 }],
+                guidance: '',
+                reviewed: false,
+                aiGenerated: false,
+            }
+            return {
+                ...prev,
+                [qNum]: {
+                    ...existing,
+                    [field]: value,
+                    reviewed: field === 'reference' ? !!value.trim() : existing.reviewed,
+                },
+            }
+        })
     }
 
     const markReviewed = () => {
-        const a = akAnswers[selectedQNumber]
-        updateAnswer('reviewed', !a.reviewed)
+        const qNum = currentQuestion ? currentQuestion.number : selectedQNumber
+        const a = akAnswers[qNum] || currentAnswer
+        updateAnswer('reviewed', !a?.reviewed)
     }
 
     const saveAnswer = () => {
+        const qNum = currentQuestion ? currentQuestion.number : selectedQNumber
+        const a = akAnswers[qNum] || currentAnswer
+        if (!a?.reference?.trim()) {
+            showToast(`Please enter reference answer text for Question ${qNum}.`, 'error')
+            return
+        }
         updateAnswer('reviewed', true)
-        setToast('Answer saved.')
+        showToast(`Answer for Question ${qNum} saved.`)
     }
 
     const confirmAnswerKey = () => {
+        const validation = validateStep(3)
+        if (!validation.valid) {
+            showToast(validation.message, 'error')
+            return
+        }
         setAkState('confirmed')
-        setToast('Answer key confirmed.')
+        showToast('Answer key confirmed for all questions.')
     }
 
     /* ============================================================
@@ -528,22 +605,16 @@ function CreateExam() {
     const [qForm, setQForm] = useState({
         number: 1,
         text: '',
-        marks: 5,
+        marks: '',
         type: 'descriptive',
-        options: ['', '', '', ''],
-        correctAnswer: 0,
-        tfAnswer: 'True',
     })
 
     const openAddQuestion = () => {
         setQForm({
             number: qpQuestions.length + 1,
             text: '',
-            marks: 5,
+            marks: '',
             type: 'descriptive',
-            options: ['', '', '', ''],
-            correctAnswer: 0,
-            tfAnswer: 'True',
         })
         setQuestionModal({ index: null })
     }
@@ -554,36 +625,28 @@ function CreateExam() {
             number: q.number,
             text: q.text,
             marks: q.marks,
-            type: q.type,
-            options: q.options ? [...q.options] : ['', '', '', ''],
-            correctAnswer: q.correctAnswer ?? 0,
-            tfAnswer: q.correctAnswer ?? 'True',
+            type: 'descriptive',
         })
         setQuestionModal({ index })
     }
 
     const saveQuestion = () => {
         if (!qForm.text.trim()) {
-            setToast('Please enter question text.')
+            showToast('Please enter question text.', 'error')
             return
         }
-        if (!qForm.marks || qForm.marks < 1) {
-            setToast('Please enter valid marks.')
+        const parsedMarks = Number(qForm.marks)
+        if (isNaN(parsedMarks) || parsedMarks <= 0) {
+            showToast('Please enter a valid positive marks value.', 'error')
             return
         }
 
         const newQ = {
             number: Number(qForm.number),
             text: qForm.text.trim(),
-            marks: Number(qForm.marks),
-            type: qForm.type,
+            marks: parsedMarks,
+            type: 'descriptive',
             status: 'ok',
-        }
-        if (qForm.type === 'mcq') {
-            newQ.options = [...qForm.options]
-            newQ.correctAnswer = Number(qForm.correctAnswer)
-        } else if (qForm.type === 'truefalse') {
-            newQ.correctAnswer = qForm.tfAnswer
         }
 
         setQpQuestions((prev) => {
@@ -595,6 +658,7 @@ function CreateExam() {
             return [...prev, newQ].sort((a, b) => a.number - b.number)
         })
         setQuestionModal(null)
+        showToast('Question saved.')
     }
 
     const deleteManualQuestion = (index) => {
@@ -602,36 +666,58 @@ function CreateExam() {
             const copy = prev.filter((_, i) => i !== index)
             return copy.map((q, i) => ({ ...q, number: i + 1 }))
         })
+        showToast('Question deleted.')
     }
 
     /* ============================================================
-       EDIT QUESTION (from review list)
+       EDIT QUESTION MODAL (from review)
        ============================================================ */
 
-    const [editForm, setEditForm] = useState({ number: 1, marks: 1, text: '', type: 'descriptive' })
+    const [editForm, setEditForm] = useState({ number: 1, marks: 5, text: '', type: 'descriptive' })
 
     const openEditReviewModal = (index) => {
         const q = qpQuestions[index]
-        setEditForm({ number: q.number, marks: q.marks, text: q.text, type: q.type })
+        setEditForm({ number: q.number, marks: q.marks, text: q.text, type: 'descriptive' })
         setEditModal(index)
     }
 
     const saveEditReview = () => {
+        if (!editForm.text.trim()) {
+            showToast('Please enter question text.', 'error')
+            return
+        }
+        const parsedMarks = Number(editForm.marks)
+        if (isNaN(parsedMarks) || parsedMarks <= 0) {
+            showToast('Please enter valid positive marks.', 'error')
+            return
+        }
+
         setQpQuestions((prev) => {
             const copy = [...prev]
-            copy[editModal] = { ...copy[editModal], ...editForm, number: Number(editForm.number), marks: Number(editForm.marks), status: 'ok' }
+            copy[editModal] = {
+                ...copy[editModal],
+                ...editForm,
+                number: Number(editForm.number),
+                marks: parsedMarks,
+                type: 'descriptive',
+                status: 'ok',
+            }
             return copy
         })
         setEditModal(null)
+        showToast('Question updated.')
     }
 
     /* ============================================================
-       STUDENTS
+       STUDENTS HANDLERS
        ============================================================ */
 
     const filteredStudents = useMemo(() => {
-        const q = studentSearch.toLowerCase()
-        return students.filter((s) => s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q))
+        const q = studentSearch.toLowerCase().trim()
+        if (!q) return students
+        return students.filter(
+            (s) => s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q)
+        )
     }, [students, studentSearch])
 
     const selectedStudentCount = students.filter((s) => s.selected).length
@@ -661,38 +747,161 @@ function CreateExam() {
         setStudentModal(true)
     }
 
-    const saveStudent = () => {
+    const saveStudent = async () => {
         const { name, id, email } = newStudent
-        if (!name.trim() || !id.trim() || !email.trim()) {
-            setStudentError('Please fill in all required fields.')
+        if (!name.trim() || !id.trim()) {
+            setStudentError('Please fill in student name and roll number.')
             return
         }
-        if (students.some((s) => s.id.toLowerCase() === id.toLowerCase())) {
-            setStudentError('A student with this ID already exists.')
+        if (students.some((s) => s.id.toLowerCase() === id.trim().toLowerCase())) {
+            setStudentError('A student with this roll number already exists.')
             return
         }
-        setStudents((prev) => [...prev, { id, name: name.trim(), email: email.trim(), selected: true }])
-        setStudentModal(false)
+
+        try {
+            await api.post('/api/students/', {
+                full_name: name.trim(),
+                roll_number: id.trim(),
+                email: email.trim(),
+            })
+            setStudents((prev) => [
+                ...prev,
+                { id: id.trim(), name: name.trim(), email: email.trim(), selected: true },
+            ])
+            setStudentModal(false)
+            showToast('Student added successfully.')
+        } catch (err) {
+            setStudentError(err.message || 'Failed to register student.')
+        }
     }
 
     /* ============================================================
-       CREATE EXAM
+       SAVE AS DRAFT & CREATE EXAM
        ============================================================ */
 
-    const createExam = () => {
-        setSuccessMessage({
-            title: 'Exam Created!',
-            message: `Your exam "${details.title || 'Untitled'}" has been successfully created and assigned to ${selectedStudentCount} student(s). Grading will begin once submissions are received.`,
-        })
-        setSuccessModal(true)
+    const saveDraft = async () => {
+        if (isSavingDraft || isSubmitting) return
+
+        if (!details.title.trim()) {
+            showToast('Please enter an exam title before saving draft.', 'error')
+            return
+        }
+        if (!details.subject.trim()) {
+            showToast('Please enter an exam subject before saving draft.', 'error')
+            return
+        }
+
+        setIsSavingDraft(true)
+        try {
+            const payload = {
+                draft_id: draftId,
+                is_draft: true,
+                exam_name: details.title.trim(),
+                subject: details.subject.trim(),
+                exam_date: details.date || today,
+                questions: qpQuestions.map((q) => ({
+                    question_number: q.number,
+                    question_text: q.text || '',
+                    max_marks: q.marks || 1,
+                    question_type: 'descriptive',
+                    reference_answer: akAnswers[q.number]?.reference || '',
+                })),
+                students: students
+                    .filter((s) => s.selected)
+                    .map((s) => ({
+                        full_name: s.name,
+                        roll_number: s.id,
+                        email: s.email,
+                    })),
+            }
+
+            const res = await api.post('/api/exams/', payload)
+            if (res && res.examination_id) {
+                setDraftId(res.examination_id)
+            }
+            showToast('Exam draft saved successfully.')
+        } catch (error) {
+            showToast(error.message || 'Unable to save draft.', 'error')
+        } finally {
+            setIsSavingDraft(false)
+        }
     }
 
-    const saveDraft = () => {
-        setSuccessMessage({
-            title: 'Draft Saved!',
-            message: 'Your exam has been saved as a draft. You can continue editing it later.',
+    const createExam = async () => {
+        if (isSubmitting || isSavingDraft) return
+
+        // Strict validation across all steps
+        for (let s = 1; s <= 4; s++) {
+            const validation = validateStep(s)
+            if (!validation.valid) {
+                showToast(validation.message, 'error')
+                setStep(s)
+                return
+            }
+        }
+
+        setIsSubmitting(true)
+        try {
+            const payload = {
+                draft_id: draftId,
+                is_draft: false,
+                exam_name: details.title.trim(),
+                subject: details.subject.trim(),
+                exam_date: details.date,
+                questions: qpQuestions.map((question) => ({
+                    question_number: question.number,
+                    question_text: question.text.trim(),
+                    max_marks: question.marks,
+                    question_type: 'descriptive',
+                    reference_answer: akAnswers[question.number]?.reference?.trim() || '',
+                })),
+                students: students
+                    .filter((student) => student.selected)
+                    .map((student) => ({
+                        full_name: student.name,
+                        roll_number: student.id,
+                        email: student.email,
+                    })),
+            }
+
+            await api.post('/api/exams/', payload)
+            setSuccessMessage({
+                title: 'Exam Created Successfully!',
+                message: `Your exam "${details.title}" has been created with ${qpQuestions.length} question(s) and assigned to ${selectedStudentCount} student(s).`,
+            })
+            resetFormState()
+            setSuccessModal(true)
+        } catch (error) {
+            showToast(error.message || 'Unable to create the exam.', 'error')
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    const resetFormState = () => {
+        setDetails({
+            title: '',
+            subject: '',
+            semester: '',
+            date: '',
+            duration: '',
+            marks: '',
         })
-        setSuccessModal(true)
+        setDraftId(null)
+        setQpSource('manual')
+        setQpFile(null)
+        setQpDocType(null)
+        setQpState('idle')
+        setQpQuestions([])
+        setAkSource('manual')
+        setAkFile(null)
+        setAkDocType(null)
+        setAkState('idle')
+        setAkAnswers({})
+        setSelectedQNumber(1)
+        setStudentSearch('')
+        setStudents((prev) => prev.map((s) => ({ ...s, selected: true })))
+        setStep(1)
     }
 
     /* ============================================================
@@ -713,11 +922,7 @@ function CreateExam() {
                                 onClick={() => goToStep(s.number)}
                             >
                                 <div className="ce-step-circle">
-                                    {isCompleted ? (
-                                        <Icon name="check" size={14} />
-                                    ) : (
-                                        s.number
-                                    )}
+                                    {isCompleted ? <Icon name="check" size={14} /> : s.number}
                                 </div>
                                 <span className="ce-step-label">{s.label}</span>
                             </button>
@@ -740,7 +945,7 @@ function CreateExam() {
             </div>
             <div className="ce-form-grid">
                 <div className="ce-form-group full-width">
-                    <label>Exam Title</label>
+                    <label>Exam Title *</label>
                     <input
                         type="text"
                         value={details.title}
@@ -749,12 +954,12 @@ function CreateExam() {
                     />
                 </div>
                 <div className="ce-form-group">
-                    <label>Subject / Course</label>
+                    <label>Subject / Course *</label>
                     <input
                         type="text"
                         value={details.subject}
                         onChange={(e) => setDetails({ ...details, subject: e.target.value })}
-                        placeholder="e.g. Biology"
+                        placeholder="e.g. Computer Science"
                     />
                 </div>
                 <div className="ce-form-group">
@@ -764,13 +969,18 @@ function CreateExam() {
                         onChange={(e) => setDetails({ ...details, semester: e.target.value })}
                     >
                         <option value="">Select Semester</option>
+                        <option value="S1">S1</option>
+                        <option value="S2">S2</option>
+                        <option value="S3">S3</option>
                         <option value="S4">S4</option>
                         <option value="S5">S5</option>
                         <option value="S6">S6</option>
+                        <option value="S7">S7</option>
+                        <option value="S8">S8</option>
                     </select>
                 </div>
                 <div className="ce-form-group">
-                    <label>Exam Date</label>
+                    <label>Exam Date *</label>
                     <input
                         type="date"
                         value={details.date}
@@ -787,12 +997,12 @@ function CreateExam() {
                     />
                 </div>
                 <div className="ce-form-group full-width">
-                    <label>Total Marks</label>
+                    <label>Total Marks (Calculated: {calculatedTotalMarks} marks)</label>
                     <input
                         type="number"
                         value={details.marks}
                         onChange={(e) => setDetails({ ...details, marks: e.target.value })}
-                        placeholder="100"
+                        placeholder="e.g. 100"
                     />
                 </div>
             </div>
@@ -801,7 +1011,6 @@ function CreateExam() {
 
     /* ---------- STEP 2: Question Paper ---------- */
     const renderStep2 = () => {
-        // Choice screen
         if (qpSource === null && qpState === 'idle') {
             return (
                 <div className="ce-card">
@@ -813,31 +1022,30 @@ function CreateExam() {
                         <button
                             type="button"
                             className="ce-choice-card recommended"
-                            onClick={() => setQpSource('upload')}
-                        >
-                            <div className="ce-choice-icon">
-                                <Icon name="upload" size={28} />
-                            </div>
-                            <h3>Upload Question Paper</h3>
-                            <p>Upload an existing PDF or image for automatic extraction.</p>
-                        </button>
-                        <button
-                            type="button"
-                            className="ce-choice-card"
                             onClick={() => setQpSource('manual')}
                         >
                             <div className="ce-choice-icon">
                                 <Icon name="edit" size={28} />
                             </div>
                             <h3>Create Manually</h3>
-                            <p>Add questions one by one with full control over type, marks, and options.</p>
+                            <p>Add descriptive questions one by one with marks and question numbers.</p>
+                        </button>
+                        <button
+                            type="button"
+                            className="ce-choice-card"
+                            onClick={() => setQpSource('upload')}
+                        >
+                            <div className="ce-choice-icon">
+                                <Icon name="upload" size={28} />
+                            </div>
+                            <h3>Upload Question Paper</h3>
+                            <p>Upload an existing PDF or document for preview.</p>
                         </button>
                     </div>
                 </div>
             )
         }
 
-        // Upload flow — upload zone
         if (qpSource === 'upload' && qpState === 'idle') {
             return (
                 <div className="ce-card">
@@ -850,13 +1058,12 @@ function CreateExam() {
             )
         }
 
-        // Upload flow — doc type confirmation
         if (qpSource === 'upload' && qpState === 'doc-type') {
             return (
                 <div className="ce-card">
                     <div className="ce-card-header">
                         <h2>Question Paper Uploaded</h2>
-                        <p>Confirm the document type before processing.</p>
+                        <p>Confirm the document type before preview.</p>
                     </div>
 
                     <div className="ce-file-info">
@@ -874,19 +1081,19 @@ function CreateExam() {
 
                     <div className="ce-doc-type-section">
                         <h3>How was this question paper created?</h3>
-                        <p>Select the document type so AutoGrade can use the correct processing method.</p>
+                        <p>Select the document type.</p>
                         <div className="ce-doc-type-grid">
                             <DocTypeCard
                                 title="Digital Document"
                                 desc="Computer-generated PDF/document"
-                                method="OCR · Fast Text Extraction"
+                                method="OCR · Digital Document"
                                 selected={qpDocType === DOC_TYPES.DIGITAL}
                                 onClick={() => setQpDocType(DOC_TYPES.DIGITAL)}
                             />
                             <DocTypeCard
                                 title="Handwritten Document"
-                                desc="Scanned or photographed handwritten question paper"
-                                method="HTR · Handwriting Recognition"
+                                desc="Scanned or photographed handwritten document"
+                                method="HTR · Handwriting Processing"
                                 selected={qpDocType === DOC_TYPES.HANDWRITTEN}
                                 onClick={() => setQpDocType(DOC_TYPES.HANDWRITTEN)}
                             />
@@ -913,15 +1120,16 @@ function CreateExam() {
             )
         }
 
-        // Upload flow — processing
         if (qpSource === 'upload' && qpState === 'processing') {
             return (
                 <ProcessingCard
-                    title={qpDocType === DOC_TYPES.DIGITAL ? 'Processing Question Paper' : 'Processing Handwritten Question Paper'}
+                    title={
+                        qpDocType === DOC_TYPES.DIGITAL
+                            ? 'Processing Question Paper'
+                            : 'Processing Handwritten Question Paper'
+                    }
                     subtitle={
-                        processingDone
-                            ? 'Extraction complete!'
-                            : 'Please wait while we extract your questions...'
+                        processingDone ? 'Extraction complete!' : 'Please wait while we extract your questions...'
                     }
                     steps={processingSteps}
                     currentStepIdx={processingStepIdx}
@@ -930,7 +1138,6 @@ function CreateExam() {
             )
         }
 
-        // Upload flow — review
         if (qpSource === 'upload' && qpState === 'complete') {
             return (
                 <div className="ce-card">
@@ -938,122 +1145,77 @@ function CreateExam() {
                         <h2>Question Paper</h2>
                         <span className="ce-review-badge">
                             <Icon name="check" size={14} />
-                            {qpQuestions.length} Questions Created Automatically
+                            {qpQuestions.length} Questions Extracted
                         </span>
                     </div>
                     <div className="ce-question-list">
                         {qpQuestions.map((q, i) => (
-                            <QuestionCard
-                                key={i}
-                                question={q}
-                                onEdit={() => openEditReviewModal(i)}
-                            />
+                            <QuestionCard key={i} question={q} onEdit={() => openEditReviewModal(i)} />
                         ))}
                     </div>
                 </div>
             )
         }
 
-        // Manual flow
-        if (qpSource === 'manual') {
-            return (
-                <div className="ce-card">
-                    <div className="ce-manual-creator-header">
-                        <h2>Question Paper</h2>
-                        <span className="ce-question-count-badge">
-                            {qpQuestions.length} Question{qpQuestions.length !== 1 ? 's' : ''}
-                        </span>
-                    </div>
-
-                    {qpQuestions.length === 0 ? (
-                        <div className="ce-empty-questions">
-                            <Icon name="emptyFile" size={64} />
-                            <h3>No questions added yet</h3>
-                            <p>Click "Add New Question" to start building your question paper.</p>
-                        </div>
-                    ) : (
-                        qpQuestions.map((q, i) => (
-                            <ManualQuestionCard
-                                key={i}
-                                question={q}
-                                onEdit={() => openEditQuestion(i)}
-                                onDelete={() => deleteManualQuestion(i)}
-                            />
-                        ))
-                    )}
-
-                    <button className="ce-add-question-btn-large" onClick={openAddQuestion}>
-                        <Icon name="plus" size={20} />
-                        Add New Question
-                    </button>
+        // Manual mode
+        return (
+            <div className="ce-card">
+                <div className="ce-manual-creator-header">
+                    <h2>Question Paper</h2>
+                    <span className="ce-question-count-badge">
+                        {qpQuestions.length} Question{qpQuestions.length !== 1 ? 's' : ''} ({calculatedTotalMarks} Total Marks)
+                    </span>
                 </div>
-            )
-        }
 
-        return null
+                {qpQuestions.length === 0 ? (
+                    <div className="ce-empty-questions">
+                        <Icon name="emptyFile" size={64} />
+                        <h3>No questions added yet</h3>
+                        <p>Click "Add New Question" below to add descriptive questions.</p>
+                    </div>
+                ) : (
+                    qpQuestions.map((q, i) => (
+                        <ManualQuestionCard
+                            key={i}
+                            question={q}
+                            onEdit={() => openEditQuestion(i)}
+                            onDelete={() => deleteManualQuestion(i)}
+                        />
+                    ))
+                )}
+
+                <button className="ce-add-question-btn-large" onClick={openAddQuestion}>
+                    <Icon name="plus" size={20} />
+                    Add New Question
+                </button>
+            </div>
+        )
     }
 
     /* ---------- STEP 3: Answer Key ---------- */
     const renderStep3 = () => {
-        if (akSource === null && akState === 'idle') {
+        if (qpQuestions.length === 0) {
             return (
                 <div className="ce-card">
                     <div className="ce-card-header">
-                        <h2>Answer Key & Marking Scheme</h2>
-                        <p>How would you like to create your answer key?</p>
+                        <h2>Reference Answers</h2>
+                        <p>Provide the expected reference answer for each question.</p>
                     </div>
-
-                    <div className="ce-choice-grid">
-
-                        <button
-                            type="button"
-                            className="ce-choice-card recommended"
-                            onClick={() => setAkSource('upload')}
-                        >
-                            <div className="ce-choice-icon">
-                                <Icon name="upload" size={28} />
-                            </div>
-
-                            <h3>Upload Existing Answer Key</h3>
-
-                            <p>
-                                Upload an existing answer key or marking scheme
-                                document.
-                            </p>
-                        </button>
-
-                        <button
-                            type="button"
-                            className="ce-choice-card"
-                            onClick={() => {
-                                setAkSource('manual')
-                                startManualAnswerKey()
-                            }}
-                        >
-                            <div className="ce-choice-icon">
-                                <Icon name="edit" size={28} />
-                            </div>
-
-                            <h3>Create Manually</h3>
-
-                            <p>
-                                Add reference answers, key concepts, marking
-                                schemes, and evaluation guidance manually.
-                            </p>
-                        </button>
-
+                    <div className="ce-empty-questions">
+                        <Icon name="emptyFile" size={64} />
+                        <h3>No questions found</h3>
+                        <p>Please return to Step 2 (Questions) and add questions first.</p>
                     </div>
                 </div>
             )
         }
-
 
         if (akSource === 'upload' && akState === 'idle') {
             return (
                 <div className="ce-card">
                     <div className="ce-card-header">
                         <h2>Upload Answer Key</h2>
-                        <p>Upload your answer key or marking scheme document.</p>
+                        <p>Upload your answer key document.</p>
                     </div>
                     <AkUploadZone onFile={handleAkFile} />
                 </div>
@@ -1065,9 +1227,8 @@ function CreateExam() {
                 <div className="ce-card">
                     <div className="ce-card-header">
                         <h2>Answer Key Uploaded</h2>
-                        <p>Confirm the document type before processing.</p>
+                        <p>Confirm the document type before preview.</p>
                     </div>
-
                     <div className="ce-file-info">
                         <div className="ce-file-icon">
                             <Icon name="file" size={22} />
@@ -1087,28 +1248,25 @@ function CreateExam() {
                             Replace File
                         </button>
                     </div>
-
                     <div className="ce-doc-type-section">
                         <h3>How was this document created?</h3>
-                        <p>Select the document type so AutoGrade can use the correct processing method.</p>
                         <div className="ce-doc-type-grid">
                             <DocTypeCard
                                 title="Digital Document"
-                                desc="Computer-generated PDF/document"
-                                method="OCR · Fast Text Extraction"
+                                desc="Computer-generated PDF"
+                                method="OCR · Text Extraction"
                                 selected={akDocType === DOC_TYPES.DIGITAL}
                                 onClick={() => setAkDocType(DOC_TYPES.DIGITAL)}
                             />
                             <DocTypeCard
                                 title="Handwritten Document"
-                                desc="Scanned or photographed handwritten answer key"
+                                desc="Scanned handwritten key"
                                 method="HTR · Handwriting Recognition"
                                 selected={akDocType === DOC_TYPES.HANDWRITTEN}
                                 onClick={() => setAkDocType(DOC_TYPES.HANDWRITTEN)}
                             />
                         </div>
                     </div>
-
                     <div className="ce-form-footer" style={{ borderTop: 'none', marginTop: 24, paddingTop: 0 }}>
                         <div className="ce-footer-left">
                             <button className="ce-btn ce-btn-ghost" onClick={backToAkChoice}>
@@ -1132,20 +1290,8 @@ function CreateExam() {
         if (akState === 'processing') {
             return (
                 <ProcessingCard
-                    title={
-                        akSource === 'ai'
-                            ? 'Generating Answer Key with AI'
-                            : akDocType === DOC_TYPES.DIGITAL
-                                ? 'Processing Answer Key'
-                                : 'Processing Handwritten Answer Key'
-                    }
-                    subtitle={
-                        processingDone
-                            ? 'Processing complete!'
-                            : akSource === 'ai'
-                                ? 'AI is preparing a structured answer key...'
-                                : 'Please wait while we structure your answer key...'
-                    }
+                    title="Processing Answer Key"
+                    subtitle={processingDone ? 'Processing complete!' : 'Structuring reference answers...'}
                     steps={processingSteps}
                     currentStepIdx={processingStepIdx}
                     showSpinner={!processingDone}
@@ -1153,119 +1299,107 @@ function CreateExam() {
             )
         }
 
-        if (akState === 'editing' && currentAnswer) {
-            return (
-                <div className="ce-card">
-                    <div className="ce-card-header">
-                        <h2>Answer Key Editor</h2>
-                        <p>Review and edit the structured answer key for each question.</p>
-                    </div>
-
-                    <div className="ce-completion-grid">
-                        <CompletionItem
-                            label="Reference Answers"
-                            value={`${Object.keys(akAnswers).length} / ${Object.keys(akAnswers).length}`}
-                            complete
-                        />
-                        <CompletionItem
-                            label="Key Concepts"
-                            value={`${Object.values(akAnswers).filter((a) => a.concepts.length).length} / ${Object.keys(akAnswers).length}`}
-                            complete
-                        />
-                        <CompletionItem
-                            label="Marking Schemes"
-                            value={`${Object.values(akAnswers).filter((a) => a.criteria.length).length} / ${Object.keys(akAnswers).length}`}
-                            complete
-                        />
-                        <CompletionItem
-                            label="Teacher Review"
-                            value={`${Object.values(akAnswers).filter((a) => a.reviewed).length} / ${Object.keys(akAnswers).length}`}
-                            complete={Object.values(akAnswers).every((a) => a.reviewed)}
-                        />
-                    </div>
-
-                    <div className="ce-answer-key-layout">
-                        <div className="ce-question-sidebar">
-                            <h4>Questions</h4>
-                            {qpQuestions.map((q) => {
-                                const a = akAnswers[q.number]
-                                const cls = a?.reviewed ? 'done' : q.status === 'warning' ? 'warning' : ''
-                                return (
-                                    <button
-                                        key={q.number}
-                                        className={`ce-sidebar-question ${cls} ${selectedQNumber === q.number ? 'active' : ''}`}
-                                        onClick={() => setSelectedQNumber(q.number)}
-                                    >
-                                        <span className="status-dot" />
-                                        <span>Q{q.number}</span>
-                                    </button>
-                                )
-                            })}
-                        </div>
-
-                        <div className="ce-editor-panel">
-                            <AnswerKeyEditor
-                                question={currentQuestion}
-                                answer={currentAnswer}
-                                onUpdate={updateAnswer}
-                                onAddConcept={addConcept}
-                                onRemoveConcept={removeConcept}
-                                onUpdateCriterion={updateCriterion}
-                                onAddCriterion={addCriterion}
-                                onRemoveCriterion={removeCriterion}
-                                onMarkReviewed={markReviewed}
-                                onSave={saveAnswer}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="ce-form-footer">
-                        <div />
-                        <div className="ce-footer-right">
-                            <button className="ce-btn ce-btn-success" onClick={confirmAnswerKey}>
-                                <Icon name="check" size={16} />
-                                Confirm Answer Key
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )
-        }
+        const completedCount = qpQuestions.filter((q) => akAnswers[q.number]?.reference?.trim()).length
+        const totalQuestions = qpQuestions.length
 
         if (akState === 'confirmed') {
-            const total = Object.keys(akAnswers).length
             return (
                 <div className="ce-card ce-ak-confirm-card">
                     <div className="ce-ak-confirm-icon">
                         <Icon name="check" size={32} />
                     </div>
                     <h2>Answer Key Ready</h2>
-                    <p>All questions have been reviewed and confirmed.</p>
+                    <p>Reference answers for all {totalQuestions} question(s) are ready.</p>
                     <div className="ce-ak-confirm-checklist">
                         <div className="ce-review-checklist">
                             <div className="ce-review-check-item">
                                 <Icon name="check" size={16} />
-                                <span>{total} Questions</span>
+                                <span>{totalQuestions} Descriptive Questions</span>
                             </div>
                             <div className="ce-review-check-item">
                                 <Icon name="check" size={16} />
-                                <span>{total} Reference Answers</span>
-                            </div>
-                            <div className="ce-review-check-item">
-                                <Icon name="check" size={16} />
-                                <span>{total} Marking Schemes</span>
-                            </div>
-                            <div className="ce-review-check-item">
-                                <Icon name="check" size={16} />
-                                <span>Teacher Review Completed</span>
+                                <span>{completedCount} Reference Answers Configured</span>
                             </div>
                         </div>
+                    </div>
+                    <div style={{ marginTop: 20, textAlign: 'center' }}>
+                        <button
+                            className="ce-btn ce-btn-outline ce-btn-sm"
+                            onClick={() => setAkState('editing')}
+                        >
+                            <Icon name="edit" size={14} />
+                            Edit Reference Answers
+                        </button>
                     </div>
                 </div>
             )
         }
 
-        return null
+        return (
+            <div className="ce-card">
+                <div className="ce-card-header">
+                    <h2>Reference Answers</h2>
+                    <p>Provide the expected reference answer for each question.</p>
+                </div>
+
+                <div className="ce-completion-grid">
+                    <CompletionItem
+                        label="Completed Answers"
+                        value={`${completedCount} / ${totalQuestions}`}
+                        complete={completedCount === totalQuestions && totalQuestions > 0}
+                    />
+                    <CompletionItem
+                        label="Questions"
+                        value={`${totalQuestions}`}
+                        complete={totalQuestions > 0}
+                    />
+                </div>
+
+                <div className="ce-answer-key-layout">
+                    <div className="ce-question-sidebar">
+                        <h4>Questions</h4>
+                        {qpQuestions.map((q) => {
+                            const a = akAnswers[q.number]
+                            const hasAnswer = !!a?.reference?.trim()
+                            const cls = hasAnswer ? 'done' : ''
+                            const isSelected = (currentQuestion ? currentQuestion.number : selectedQNumber) === q.number
+                            return (
+                                <button
+                                    key={q.number}
+                                    className={`ce-sidebar-question ${cls} ${isSelected ? 'active' : ''}`}
+                                    onClick={() => setSelectedQNumber(q.number)}
+                                >
+                                    <span className="status-dot" />
+                                    <span>Q{q.number} ({q.marks}M)</span>
+                                </button>
+                            )
+                        })}
+                    </div>
+
+                    <div className="ce-editor-panel">
+                        {currentQuestion && (
+                            <AnswerKeyEditor
+                                question={currentQuestion}
+                                answer={currentAnswer}
+                                onUpdate={updateAnswer}
+                                onMarkReviewed={markReviewed}
+                                onSave={saveAnswer}
+                            />
+                        )}
+                    </div>
+                </div>
+
+                <div className="ce-form-footer">
+                    <div />
+                    <div className="ce-footer-right">
+                        <button className="ce-btn ce-btn-success" onClick={confirmAnswerKey}>
+                            <Icon name="check" size={16} />
+                            Confirm Answer Key
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     /* ---------- STEP 4: Students ---------- */
@@ -1273,7 +1407,7 @@ function CreateExam() {
         <div className="ce-card">
             <div className="ce-card-header">
                 <h2>Assign Students</h2>
-                <p>Select the students who will take this examination.</p>
+                <p>Select the registered students who will take this examination.</p>
             </div>
 
             <div className="ce-students-toolbar">
@@ -1283,13 +1417,21 @@ function CreateExam() {
                         type="text"
                         value={studentSearch}
                         onChange={(e) => setStudentSearch(e.target.value)}
-                        placeholder="Search students by name or ID..."
+                        placeholder="Search students by name, roll number, or email..."
                     />
                 </div>
-                <button className="ce-btn ce-btn-outline ce-btn-sm" onClick={selectAllStudents}>
+                <button
+                    className="ce-btn ce-btn-outline ce-btn-sm"
+                    onClick={selectAllStudents}
+                    disabled={students.length === 0}
+                >
                     Select All
                 </button>
-                <button className="ce-btn ce-btn-ghost ce-btn-sm" onClick={deselectAllStudents}>
+                <button
+                    className="ce-btn ce-btn-ghost ce-btn-sm"
+                    onClick={deselectAllStudents}
+                    disabled={students.length === 0}
+                >
                     Deselect All
                 </button>
                 <button className="ce-btn ce-btn-primary ce-btn-sm" onClick={openStudentModal}>
@@ -1304,49 +1446,74 @@ function CreateExam() {
                         <tr>
                             <th style={{ width: 40 }} />
                             <th>Student Name</th>
-                            <th>Student ID</th>
+                            <th>Roll Number</th>
                             <th>Email</th>
                             <th style={{ width: 60 }} />
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredStudents.map((s) => (
-                            <tr key={s.id}>
-                                <td>
-                                    <input
-                                        type="checkbox"
-                                        className="ce-student-checkbox"
-                                        checked={s.selected}
-                                        onChange={() => toggleStudent(s.id)}
-                                    />
-                                </td>
-                                <td><strong>{s.name}</strong></td>
-                                <td>{s.id}</td>
-                                <td>{s.email}</td>
-                                <td>
-                                    <button
-                                        className="ce-student-remove"
-                                        onClick={() => removeStudent(s.id)}
-                                    >
-                                        ×
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                        {filteredStudents.length === 0 && (
+                        {loadingStudents ? (
                             <tr>
-                                <td colSpan={5} style={{ textAlign: 'center', color: 'var(--g500)', padding: 30 }}>
-                                    No students found.
+                                <td colSpan={5} style={{ padding: '32px 0' }}>
+                                    <PageLoader inline message="Loading registered students..." />
                                 </td>
                             </tr>
+                        ) : students.length === 0 ? (
+                            <tr>
+                                <td colSpan={5} style={{ textAlign: 'center', color: 'var(--g500)', padding: 36 }}>
+                                    No students registered yet. Click <strong>"+ Add Student"</strong> above to register students for this exam.
+                                </td>
+                            </tr>
+                        ) : filteredStudents.length === 0 ? (
+                            <tr>
+                                <td colSpan={5} style={{ textAlign: 'center', color: 'var(--g500)', padding: 36 }}>
+                                    No students match your search filter.
+                                </td>
+                            </tr>
+                        ) : (
+                            filteredStudents.map((s) => (
+                                <tr key={s.id}>
+                                    <td>
+                                        <input
+                                            type="checkbox"
+                                            className="ce-student-checkbox"
+                                            checked={s.selected}
+                                            onChange={() => toggleStudent(s.id)}
+                                        />
+                                    </td>
+                                    <td><strong>{s.name}</strong></td>
+                                    <td>{s.id}</td>
+                                    <td>{s.email || '—'}</td>
+                                    <td>
+                                        <button
+                                            className="ce-student-remove"
+                                            title="Remove student"
+                                            onClick={() => removeStudent(s.id)}
+                                        >
+                                            ×
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
                         )}
                     </tbody>
                 </table>
             </div>
 
-            <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--brd)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+            <div
+                style={{
+                    marginTop: 20,
+                    paddingTop: 16,
+                    borderTop: '1px solid var(--brd)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 12,
+                }}
+            >
                 <span className="ce-review-badge">
-                    {selectedStudentCount} student{selectedStudentCount !== 1 ? 's' : ''} selected
+                    {selectedStudentCount} student{selectedStudentCount !== 1 ? 's' : ''} assigned
                 </span>
                 <span style={{ fontSize: 13, color: 'var(--g500)' }}>
                     Showing {filteredStudents.length} of {students.length} students
@@ -1357,23 +1524,13 @@ function CreateExam() {
 
     /* ---------- STEP 5: Review ---------- */
     const renderStep5 = () => {
-        const selected = students.filter((s) => s.selected)
-        const qpLabel =
-            qpSource === 'manual'
-                ? 'Created Manually'
-                : `Uploaded${qpFile ? ': ' + qpFile.name : ''}`
-        const akLabel =
-            akSource === 'manual'
-                ? 'Created Manually'
-                : akSource === 'upload'
-                    ? `Uploaded${akFile ? ': ' + akFile.name : ''}`
-                    : 'Not configured'
+        const selectedStudents = students.filter((s) => s.selected)
 
         return (
             <div className="ce-card">
                 <div className="ce-card-header">
-                    <h2>Review & Create</h2>
-                    <p>Review all exam details before creating the examination.</p>
+                    <h2>Review & Create Exam</h2>
+                    <p>Verify all exam details, questions, reference answers, and student assignments before creating.</p>
                 </div>
 
                 <div className="ce-review-section">
@@ -1383,43 +1540,74 @@ function CreateExam() {
                     <div className="ce-review-grid">
                         <ReviewItem label="Exam Name" value={details.title || 'Untitled'} />
                         <ReviewItem label="Subject" value={details.subject || 'Not specified'} />
-                        <ReviewItem label="Semester" value={details.semester || 'Not specified'} />
+                        <ReviewItem label="Semester" value={details.semester || 'N/A'} />
                         <ReviewItem label="Date" value={details.date || 'Not specified'} />
                         <ReviewItem label="Duration" value={details.duration || 'Not specified'} />
-                        <ReviewItem label="Total Marks" value={details.marks || '0'} />
+                        <ReviewItem label="Total Marks" value={`${calculatedTotalMarks} marks`} />
                     </div>
                 </div>
 
                 <div className="ce-review-section">
                     <h4>
-                        <span className="check-icon">✓</span> Question Paper
+                        <span className="check-icon">✓</span> Question Paper & Reference Answers
                     </h4>
-                    <div className="ce-review-checklist">
-                        <CheckLine>{qpLabel}</CheckLine>
-                        <CheckLine>{qpQuestions.length} questions created</CheckLine>
-                        <CheckLine>Teacher reviewed</CheckLine>
+                    <div className="ce-review-checklist" style={{ marginBottom: 16 }}>
+                        <CheckLine>{qpQuestions.length} descriptive question(s) configured</CheckLine>
+                        <CheckLine>Reference answers provided for all questions</CheckLine>
+                    </div>
+
+                    <div className="ce-question-list">
+                        {qpQuestions.map((q) => {
+                            const ref = akAnswers[q.number]?.reference
+                            return (
+                                <div key={q.number} className="ce-question-card" style={{ marginBottom: 12 }}>
+                                    <div className="ce-question-card-header">
+                                        <span className="ce-question-number">Q{q.number}</span>
+                                        <span className="ce-question-type-badge descriptive">Descriptive</span>
+                                        <span className="ce-question-marks">{q.marks} marks</span>
+                                    </div>
+                                    <p className="ce-question-text" style={{ fontWeight: 600 }}>{q.text}</p>
+                                    <div style={{ marginTop: 8, padding: 12, background: 'var(--g50)', borderRadius: 8, borderLeft: '3px solid var(--green)' }}>
+                                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--g600)', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 4 }}>
+                                            Reference Answer:
+                                        </span>
+                                        <p style={{ margin: 0, fontSize: 14, color: 'var(--g800)', lineHeight: 1.5 }}>
+                                            {ref || '(No reference answer entered)'}
+                                        </p>
+                                    </div>
+                                </div>
+                            )
+                        })}
                     </div>
                 </div>
 
                 <div className="ce-review-section">
                     <h4>
-                        <span className="check-icon">✓</span> Answer Key
+                        <span className="check-icon">✓</span> Assigned Students ({selectedStudents.length})
                     </h4>
                     <div className="ce-review-checklist">
-                        <CheckLine>{akLabel}</CheckLine>
-                        <CheckLine>{Object.keys(akAnswers).length} reference answers</CheckLine>
-                        <CheckLine>Marking schemes configured</CheckLine>
-                        <CheckLine>Teacher confirmed</CheckLine>
+                        <CheckLine>{selectedStudents.length} student(s) assigned</CheckLine>
                     </div>
-                </div>
-
-                <div className="ce-review-section">
-                    <h4>
-                        <span className="check-icon">✓</span> Students
-                    </h4>
-                    <div className="ce-review-checklist">
-                        <CheckLine>{selected.length} students selected</CheckLine>
-                    </div>
+                    {selectedStudents.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                            {selectedStudents.map((s) => (
+                                <span
+                                    key={s.id}
+                                    style={{
+                                        padding: '4px 10px',
+                                        background: 'var(--blue-s)',
+                                        border: '1px solid var(--blue-l)',
+                                        borderRadius: 6,
+                                        fontSize: 12,
+                                        fontWeight: 600,
+                                        color: 'var(--navy)',
+                                    }}
+                                >
+                                    {s.name} ({s.id})
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         )
@@ -1433,7 +1621,7 @@ function CreateExam() {
         <div className="create-exam-page">
             <div className="page-header">
                 <p>
-                    Create and configure a new examination for AI-based evaluation of student answer sheets.
+                    Create and configure a new examination for AI-assisted answer evaluation.
                 </p>
             </div>
             {renderStepper()}
@@ -1454,8 +1642,12 @@ function CreateExam() {
                     )}
                 </div>
                 <div className="ce-footer-right">
-                    <button className="ce-btn ce-btn-outline" onClick={saveDraft}>
-                        Save as Draft
+                    <button
+                        className="ce-btn ce-btn-outline"
+                        onClick={saveDraft}
+                        disabled={isSavingDraft || isSubmitting}
+                    >
+                        {isSavingDraft ? 'Saving Draft...' : 'Save as Draft'}
                     </button>
                     {step < 5 ? (
                         <button className="ce-btn ce-btn-primary" onClick={goNext}>
@@ -1463,8 +1655,12 @@ function CreateExam() {
                             <Icon name="arrowRight" size={14} />
                         </button>
                     ) : (
-                        <button className="ce-btn ce-btn-success" onClick={createExam}>
-                            Create Exam
+                        <button
+                            className="ce-btn ce-btn-success"
+                            onClick={createExam}
+                            disabled={isSubmitting || isSavingDraft}
+                        >
+                            {isSubmitting ? 'Creating Exam...' : 'Create Exam'}
                             <Icon name="check" size={14} />
                         </button>
                     )}
@@ -1505,7 +1701,10 @@ function CreateExam() {
                 <SuccessModal
                     title={successMessage.title}
                     message={successMessage.message}
-                    onClose={() => setSuccessModal(false)}
+                    onClose={() => {
+                        setSuccessModal(false)
+                        setStep(1)
+                    }}
                 />
             )}
 
@@ -1515,14 +1714,15 @@ function CreateExam() {
                         position: 'fixed',
                         bottom: 24,
                         right: 24,
-                        background: 'var(--green-l)',
-                        color: 'var(--green)',
+                        background: toastType === 'error' ? 'var(--red-l)' : 'var(--green-l)',
+                        color: toastType === 'error' ? 'var(--red)' : 'var(--green)',
                         padding: '12px 18px',
                         borderRadius: 8,
                         fontSize: 13,
                         fontWeight: 600,
                         boxShadow: 'var(--sh)',
                         zIndex: 300,
+                        border: toastType === 'error' ? '1px solid var(--red)' : '1px solid var(--green)',
                     }}
                 >
                     {toast}
@@ -1557,7 +1757,7 @@ function QpUploadZone({ onFile }) {
         >
             <Icon name="upload" size={48} />
             <h3>
-                Drop your file here or <span className="browse">browse</span>
+                Drop your question paper here or <span className="browse">browse</span>
             </h3>
             <p>PDF, PNG, JPG up to 20MB</p>
             <input
@@ -1592,7 +1792,7 @@ function AkUploadZone({ onFile }) {
         >
             <Icon name="upload" size={48} />
             <h3>
-                Drop your file here or <span className="browse">browse</span>
+                Drop your answer key here or <span className="browse">browse</span>
             </h3>
             <p>PDF, PNG, JPG up to 20MB</p>
             <input
@@ -1657,18 +1857,10 @@ function QuestionCard({ question, onEdit }) {
                 <span className={`ce-question-number ${question.status === 'warning' ? 'warning' : ''}`}>
                     Q{question.number}
                 </span>
-                <span className={`ce-question-type-badge ${question.type}`}>
-                    {QUESTION_TYPES[question.type]}
-                </span>
+                <span className="ce-question-type-badge descriptive">Descriptive</span>
                 <span className="ce-question-marks">{question.marks} marks</span>
             </div>
             <p className="ce-question-text">{question.text}</p>
-            {question.status === 'warning' && (
-                <div className="ce-question-warning">
-                    <Icon name="warning" size={16} />
-                    <span>Question number could not be confidently detected. Please review.</span>
-                </div>
-            )}
             <div className="ce-question-actions">
                 <button className="ce-btn ce-btn-ghost ce-btn-sm" onClick={onEdit}>
                     <Icon name="edit" size={14} />
@@ -1680,47 +1872,18 @@ function QuestionCard({ question, onEdit }) {
 }
 
 function ManualQuestionCard({ question, onEdit, onDelete }) {
-    const isMcq = question.type === 'mcq' && question.options?.length
-    const isTf = question.type === 'truefalse'
-
     return (
         <div className="ce-manual-question-card">
             <div className="ce-manual-q-header">
                 <div className="ce-manual-q-header-left">
                     <span className="ce-manual-q-number">{question.number}</span>
-                    <span className={`ce-manual-q-type ${question.type}`}>
-                        {QUESTION_TYPES[question.type]}
-                    </span>
+                    <span className="ce-manual-q-type descriptive">Descriptive</span>
                 </div>
                 <span className="ce-manual-q-marks">{question.marks} marks</span>
             </div>
 
             <div className="ce-manual-q-body">
                 <div className="ce-manual-q-text">{question.text || '(No question text)'}</div>
-
-                {isMcq && (
-                    <div className="ce-manual-q-options">
-                        {question.options.map((o, i) => (
-                            <div key={i} className={`ce-manual-option ${i === question.correctAnswer ? 'correct' : ''}`}>
-                                <span className="opt-letter">{OPTION_LETTERS[i] || i + 1}</span>
-                                <span>{o || '(Empty option)'}</span>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {isTf && (
-                    <div className="ce-manual-q-options">
-                        <div className={`ce-manual-option ${question.correctAnswer === 'True' ? 'correct' : ''}`}>
-                            <span className="opt-letter">T</span>
-                            <span>True</span>
-                        </div>
-                        <div className={`ce-manual-option ${question.correctAnswer === 'False' ? 'correct' : ''}`}>
-                            <span className="opt-letter">F</span>
-                            <span>False</span>
-                        </div>
-                    </div>
-                )}
             </div>
 
             <div className="ce-manual-q-actions">
@@ -1750,31 +1913,11 @@ function CompletionItem({ label, value, complete }) {
     )
 }
 
-function AnswerKeyEditor({
-    question,
-    answer,
-    onUpdate,
-    onAddConcept,
-    onRemoveConcept,
-    onUpdateCriterion,
-    onAddCriterion,
-    onRemoveCriterion,
-    onMarkReviewed,
-    onSave,
-}) {
-    const [newConcept, setNewConcept] = useState('')
-    const totalMarks = answer.criteria.reduce((s, c) => s + (Number(c.marks) || 0), 0)
-
+function AnswerKeyEditor({ question, answer, onUpdate, onMarkReviewed, onSave }) {
     return (
         <>
             <div className="ce-editor-panel-header">
-                <h3>Q{question.number}</h3>
-                {answer.aiGenerated && (
-                    <span className="ce-ai-draft-badge">
-                        <Icon name="warning" size={12} />
-                        AI Generated Draft — Teacher Review Required
-                    </span>
-                )}
+                <h3>Question {question.number}</h3>
             </div>
 
             <div className="ce-linked-question">
@@ -1782,113 +1925,30 @@ function AnswerKeyEditor({
             </div>
 
             <div className="ce-editor-section">
-                <label>Reference Answer</label>
+                <label>Reference Answer (Required for Phase 1 ASAG Evaluation) *</label>
                 <textarea
+                    rows="5"
                     value={answer.reference}
                     onChange={(e) => onUpdate('reference', e.target.value)}
+                    placeholder="Enter the expected reference answer..."
                 />
             </div>
 
-            <div className="ce-editor-section">
-                <label>Key Concepts</label>
-                <div className="ce-concept-tags">
-                    {answer.concepts.map((c, i) => (
-                        <span key={i} className="ce-concept-tag">
-                            {c}
-                            <button onClick={() => onRemoveConcept(i)}>×</button>
-                        </span>
-                    ))}
-                </div>
-                <div className="ce-add-concept-row">
-                    <input
-                        type="text"
-                        value={newConcept}
-                        onChange={(e) => setNewConcept(e.target.value)}
-                        placeholder="Add a key concept..."
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                e.preventDefault()
-                                onAddConcept(newConcept)
-                                setNewConcept('')
-                            }
-                        }}
-                    />
-                    <button
-                        className="ce-btn ce-btn-ghost ce-btn-sm"
-                        onClick={() => {
-                            onAddConcept(newConcept)
-                            setNewConcept('')
-                        }}
-                    >
-                        + Add
-                    </button>
-                </div>
-            </div>
-
-            <div className="ce-editor-section">
-                <label>Marking Scheme</label>
-                <table className="ce-marking-table">
-                    <thead>
-                        <tr>
-                            <th>Criterion</th>
-                            <th style={{ width: 100 }}>Marks</th>
-                            <th style={{ width: 40 }} />
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {answer.criteria.map((c, i) => (
-                            <tr key={i}>
-                                <td>
-                                    <input
-                                        type="text"
-                                        value={c.name}
-                                        onChange={(e) => onUpdateCriterion(i, 'name', e.target.value)}
-                                    />
-                                </td>
-                                <td>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        value={c.marks}
-                                        onChange={(e) => onUpdateCriterion(i, 'marks', Number(e.target.value) || 0)}
-                                    />
-                                </td>
-                                <td>
-                                    <button className="remove-btn" onClick={() => onRemoveCriterion(i)}>
-                                        ×
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                <button className="ce-btn ce-btn-ghost ce-btn-sm" style={{ marginTop: 8 }} onClick={onAddCriterion}>
-                    + Add Criterion
-                </button>
-                <div className="ce-marking-total" style={{ marginTop: 12 }}>
-                    <span>Total</span>
-                    <span className="total-value">
-                        {totalMarks} / {question.marks}
-                    </span>
-                </div>
-            </div>
-
-            <div className="ce-editor-section">
-                <label>
-                    Evaluation Guidance <span style={{ fontWeight: 400, color: 'var(--g400)' }}>(Optional)</span>
-                </label>
-                <textarea
-                    value={answer.guidance}
-                    onChange={(e) => onUpdate('guidance', e.target.value)}
-                />
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--brd)' }}>
+            <div
+                style={{
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    gap: 10,
+                    marginTop: 20,
+                    paddingTop: 20,
+                    borderTop: '1px solid var(--brd)',
+                }}
+            >
                 <button className="ce-btn ce-btn-ghost" onClick={onMarkReviewed}>
                     {answer.reviewed ? '✓ Reviewed' : 'Mark as Reviewed'}
                 </button>
                 <button className="ce-btn ce-btn-primary" onClick={onSave}>
-                    Save
+                    Save Answer
                 </button>
             </div>
         </>
@@ -1931,22 +1991,6 @@ function ModalShell({ children, onClose, className = '' }) {
 function QuestionModal({ form, setForm, isEdit, onClose, onSave }) {
     const setField = (field, value) => setForm((f) => ({ ...f, [field]: value }))
 
-    const updateOption = (i, value) => {
-        setForm((f) => {
-            const options = [...f.options]
-            options[i] = value
-            return { ...f, options }
-        })
-    }
-
-    const addOption = () => {
-        setForm((f) => (f.options.length < 6 ? { ...f, options: [...f.options, ''] } : f))
-    }
-
-    const removeOption = (i) => {
-        setForm((f) => ({ ...f, options: f.options.filter((_, idx) => idx !== i) }))
-    }
-
     return (
         <ModalShell onClose={onClose}>
             <div className="ce-modal-header">
@@ -1958,7 +2002,7 @@ function QuestionModal({ form, setForm, isEdit, onClose, onSave }) {
 
             <div className="ce-form-grid">
                 <div className="ce-form-group">
-                    <label>Question Number</label>
+                    <label>Question Number *</label>
                     <input
                         type="number"
                         min="1"
@@ -1968,24 +2012,24 @@ function QuestionModal({ form, setForm, isEdit, onClose, onSave }) {
                 </div>
                 <div className="ce-form-group">
                     <label>Question Type</label>
-                    <select value={form.type} onChange={(e) => setField('type', e.target.value)}>
-                        <option value="descriptive">Descriptive</option>
-                        <option value="mcq">Multiple Choice (MCQ)</option>
-                        <option value="short">Short Answer</option>
-                        <option value="truefalse">True / False</option>
-                    </select>
+                    <input
+                        type="text"
+                        value="Descriptive"
+                        disabled
+                        style={{ background: 'var(--g100)', color: 'var(--g600)' }}
+                    />
                 </div>
                 <div className="ce-form-group full-width">
-                    <label>Question Text</label>
+                    <label>Question Text *</label>
                     <textarea
                         rows="3"
                         value={form.text}
                         onChange={(e) => setField('text', e.target.value)}
-                        placeholder="Enter your question..."
+                        placeholder="Enter the descriptive question text..."
                     />
                 </div>
-                <div className="ce-form-group">
-                    <label>Maximum Marks</label>
+                <div className="ce-form-group full-width">
+                    <label>Maximum Marks *</label>
                     <input
                         type="number"
                         min="1"
@@ -1994,72 +2038,6 @@ function QuestionModal({ form, setForm, isEdit, onClose, onSave }) {
                     />
                 </div>
             </div>
-
-            {form.type === 'mcq' && (
-                <div style={{ marginTop: 20 }}>
-                    <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--g700)', marginBottom: 10, display: 'block' }}>
-                        Options
-                    </label>
-                    {form.options.map((opt, i) => (
-                        <div key={i} className="ce-mcq-row">
-                            <span className="letter">{OPTION_LETTERS[i]}.</span>
-                            <input
-                                type="text"
-                                value={opt}
-                                onChange={(e) => updateOption(i, e.target.value)}
-                                placeholder={`Option ${i + 1}`}
-                            />
-                            {form.options.length > 2 && (
-                                <button
-                                    type="button"
-                                    className="ce-btn ce-btn-ghost ce-btn-sm"
-                                    style={{ color: 'var(--red)', padding: '6px 10px' }}
-                                    onClick={() => removeOption(i)}
-                                >
-                                    ×
-                                </button>
-                            )}
-                        </div>
-                    ))}
-                    <button type="button" className="ce-btn ce-btn-ghost ce-btn-sm" style={{ marginTop: 10 }} onClick={addOption}>
-                        <Icon name="plus" size={14} />
-                        Add Option
-                    </button>
-
-                    <div style={{ marginTop: 16 }}>
-                        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--g700)', marginBottom: 8, display: 'block' }}>
-                            Correct Answer
-                        </label>
-                        <select
-                            value={form.correctAnswer}
-                            onChange={(e) => setField('correctAnswer', e.target.value)}
-                            style={{ width: '100%', padding: '11px 14px', border: '1.5px solid var(--brd)', borderRadius: 8, fontSize: 14, fontFamily: 'inherit' }}
-                        >
-                            {form.options.map((opt, i) => (
-                                <option key={i} value={i}>
-                                    Option {OPTION_LETTERS[i]}: {opt || '(empty)'}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-            )}
-
-            {form.type === 'truefalse' && (
-                <div style={{ marginTop: 20 }}>
-                    <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--g700)', marginBottom: 10, display: 'block' }}>
-                        Correct Answer
-                    </label>
-                    <select
-                        value={form.tfAnswer}
-                        onChange={(e) => setField('tfAnswer', e.target.value)}
-                        style={{ width: '100%', padding: '11px 14px', border: '1.5px solid var(--brd)', borderRadius: 8, fontSize: 14, fontFamily: 'inherit' }}
-                    >
-                        <option value="True">True</option>
-                        <option value="False">False</option>
-                    </select>
-                </div>
-            )}
 
             <div className="ce-modal-footer">
                 <button className="ce-btn ce-btn-ghost" onClick={onClose}>
@@ -2095,16 +2073,16 @@ function StudentModal({ value, setValue, error, onClose, onSave }) {
                     />
                 </div>
                 <div className="ce-form-group">
-                    <label>Student ID *</label>
+                    <label>Roll Number / Student ID *</label>
                     <input
                         type="text"
                         value={value.id}
                         onChange={(e) => setField('id', e.target.value)}
-                        placeholder="e.g. STU009"
+                        placeholder="e.g. CS009"
                     />
                 </div>
                 <div className="ce-form-group">
-                    <label>Email *</label>
+                    <label>Email</label>
                     <input
                         type="email"
                         value={value.email}
@@ -2139,7 +2117,7 @@ function EditQuestionModal({ form, setForm, onClose, onSave }) {
             </div>
             <div className="ce-form-grid">
                 <div className="ce-form-group">
-                    <label>Question Number</label>
+                    <label>Question Number *</label>
                     <input
                         type="number"
                         min="1"
@@ -2148,7 +2126,7 @@ function EditQuestionModal({ form, setForm, onClose, onSave }) {
                     />
                 </div>
                 <div className="ce-form-group">
-                    <label>Maximum Marks</label>
+                    <label>Maximum Marks *</label>
                     <input
                         type="number"
                         min="1"
@@ -2157,20 +2135,12 @@ function EditQuestionModal({ form, setForm, onClose, onSave }) {
                     />
                 </div>
                 <div className="ce-form-group full-width">
-                    <label>Question Text</label>
+                    <label>Question Text *</label>
                     <textarea
                         rows="3"
                         value={form.text}
                         onChange={(e) => setField('text', e.target.value)}
                     />
-                </div>
-                <div className="ce-form-group full-width">
-                    <label>Question Type</label>
-                    <select value={form.type} onChange={(e) => setField('type', e.target.value)}>
-                        <option value="descriptive">Descriptive</option>
-                        <option value="mcq">Multiple Choice</option>
-                        <option value="short">Short Answer</option>
-                    </select>
                 </div>
             </div>
             <div className="ce-modal-footer">

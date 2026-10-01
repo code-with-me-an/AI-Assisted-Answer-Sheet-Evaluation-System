@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { api } from '../lib/api'
+import { PageLoader, ErrorState } from '../components/PageLoader'
 import '../style/Results.css'
 
 /* ============================================================
@@ -162,67 +164,6 @@ function Icon({ name, size = 16 }) {
     return <svg {...props}>{paths[name]}</svg>
 }
 
-/* ============================================================
-   DATA
-   ============================================================ */
-
-const EXAMS_DATA = [
-    { id: 1, title: 'Data Structures — Internal Examination', subject: 'Computer Science', code: 'CS301', date: '16 Sep 2026', dateISO: '2026-09-16', totalMarks: 100, questions: 10, students: 50, evaluated: 47, pending: 3, average: 72.4, highest: 96, lowest: 31, median: 74, passRate: 84, status: 'processing' },
-    { id: 2, title: 'DBMS — Internal Examination', subject: 'Computer Science', code: 'CS302', date: '12 Sep 2026', dateISO: '2026-09-12', totalMarks: 100, questions: 8, students: 45, evaluated: 45, pending: 0, average: 78.2, highest: 94, lowest: 42, median: 79, passRate: 89, status: 'completed' },
-    { id: 3, title: 'Operating Systems — Internal', subject: 'Computer Science', code: 'CS303', date: '08 Sep 2026', dateISO: '2026-09-08', totalMarks: 100, questions: 10, students: 48, evaluated: 48, pending: 0, average: 68.5, highest: 92, lowest: 38, median: 70, passRate: 79, status: 'completed' },
-    { id: 4, title: 'Computer Networks — Quiz', subject: 'Computer Science', code: 'CS304', date: '02 Sep 2026', dateISO: '2026-09-02', totalMarks: 50, questions: 5, students: 52, evaluated: 30, pending: 22, average: 71.8, highest: 98, lowest: 28, median: 73, passRate: 82, status: 'partial' },
-    { id: 5, title: 'Algorithms — Unit Test', subject: 'Computer Science', code: 'CS305', date: '28 Aug 2026', dateISO: '2026-08-28', totalMarks: 80, questions: 6, students: 46, evaluated: 46, pending: 0, average: 74.1, highest: 80, lowest: 45, median: 75, passRate: 91, status: 'completed' },
-]
-
-const STUDENTS_DATA = [
-    { id: 'CS001', name: 'Rahul Kumar', score: 87, pct: 87, status: 'reviewed', aiScore: 85, finalScore: 87 },
-    { id: 'CS002', name: 'Anu Joseph', score: 74, pct: 74, status: 'evaluated', aiScore: 74, finalScore: 74 },
-    { id: 'CS003', name: 'Arjun Raj', score: 91, pct: 91, status: 'reviewed', aiScore: 90, finalScore: 91 },
-    { id: 'CS004', name: 'Meera S', score: null, pct: null, status: 'processing', aiScore: null, finalScore: null },
-    { id: 'CS005', name: 'Vishnu P', score: 65, pct: 65, status: 'evaluated', aiScore: 65, finalScore: 65 },
-    { id: 'CS006', name: 'Lakshmi Nair', score: 96, pct: 96, status: 'reviewed', aiScore: 95, finalScore: 96 },
-    { id: 'CS007', name: 'Aditya Menon', score: 58, pct: 58, status: 'evaluated', aiScore: 58, finalScore: 58 },
-    { id: 'CS008', name: 'Priya Sharma', score: 82, pct: 82, status: 'reviewed', aiScore: 81, finalScore: 82 },
-    { id: 'CS009', name: 'Karthik R', score: 71, pct: 71, status: 'evaluated', aiScore: 71, finalScore: 71 },
-    { id: 'CS010', name: 'Sneha Iyer', score: 88, pct: 88, status: 'reviewed', aiScore: 87, finalScore: 88 },
-    { id: 'CS011', name: 'Rohan Das', score: 45, pct: 45, status: 'evaluated', aiScore: 45, finalScore: 45 },
-    { id: 'CS012', name: 'Divya Krishnan', score: 79, pct: 79, status: 'evaluated', aiScore: 79, finalScore: 79 },
-    { id: 'CS013', name: 'Aravind M', score: null, pct: null, status: 'pending', aiScore: null, finalScore: null },
-    { id: 'CS014', name: 'Nandini V', score: 93, pct: 93, status: 'reviewed', aiScore: 92, finalScore: 93 },
-    { id: 'CS015', name: 'Siddharth K', score: 67, pct: 67, status: 'evaluated', aiScore: 67, finalScore: 67 },
-    { id: 'CS016', name: 'Aishwarya T', score: 84, pct: 84, status: 'reviewed', aiScore: 83, finalScore: 84 },
-    { id: 'CS017', name: 'Manoj P', score: 72, pct: 72, status: 'evaluated', aiScore: 72, finalScore: 72 },
-    { id: 'CS018', name: 'Revathi S', score: 89, pct: 89, status: 'reviewed', aiScore: 88, finalScore: 89 },
-    { id: 'CS019', name: 'Gokul R', score: 55, pct: 55, status: 'evaluated', aiScore: 55, finalScore: 55 },
-    { id: 'CS020', name: 'Swathi M', score: 77, pct: 77, status: 'evaluated', aiScore: 77, finalScore: 77 },
-]
-
-const QUESTIONS_DATA = [
-    { number: 1, text: 'What is a Stack? Explain its operations with examples.', marks: 10, avgScore: 8.6, difficulty: 'high' },
-    { number: 2, text: 'Compare BFS and DFS. When would you use each?', marks: 10, avgScore: 7.2, difficulty: 'moderate' },
-    { number: 3, text: 'Explain the concept of AVL trees and their rotations.', marks: 10, avgScore: 4.9, difficulty: 'low' },
-    { number: 4, text: 'Write an algorithm to detect a cycle in a directed graph.', marks: 10, avgScore: 8.8, difficulty: 'high' },
-    { number: 5, text: 'What is hashing? Explain collision resolution techniques.', marks: 10, avgScore: 7.5, difficulty: 'moderate' },
-    { number: 6, text: 'Differentiate between arrays and linked lists.', marks: 10, avgScore: 8.2, difficulty: 'high' },
-    { number: 7, text: 'Explain quicksort algorithm with time complexity analysis.', marks: 10, avgScore: 6.8, difficulty: 'moderate' },
-    { number: 8, text: 'What is a binary search tree? Discuss its properties.', marks: 10, avgScore: 7.9, difficulty: 'high' },
-    { number: 9, text: 'Describe the applications of stacks in expression evaluation.', marks: 10, avgScore: 7.1, difficulty: 'moderate' },
-    { number: 10, text: "Explain Dijkstra's shortest path algorithm.", marks: 10, avgScore: 5.4, difficulty: 'low' },
-]
-
-const SAMPLE_EVALUATIONS = [
-    { qNumber: 1, studentAnswer: 'A stack is a linear data structure where insertion and deletion occur from one end. It follows the LIFO principle. Operations include push, pop, and peek.', referenceAnswer: 'A stack is a linear data structure where insertion and deletion are performed at the top. It follows the Last-In-First-Out (LIFO) principle. Key operations: push (insert), pop (remove), peek (view top).', aiScore: 9, finalScore: 9, verification: 'correct', components: { semantic: 0.94, coverage: 92, keywords: 'High', completeness: 90, htr: 96 }, feedback: 'The student correctly identified the stack as a linear data structure and correctly mentioned the LIFO principle. They also listed the key operations (push, pop, peek). However, the answer does not explicitly identify the top as the end from which operations are performed. Overall, a strong answer with minor omission.', reviewed: true, reason: '' },
-    { qNumber: 2, studentAnswer: 'BFS uses a queue and explores level by level. DFS uses a stack or recursion and goes deep first. BFS is good for shortest path in unweighted graphs, DFS for topological sort.', referenceAnswer: 'BFS (Breadth-First Search) explores neighbors first using a queue, ideal for shortest paths in unweighted graphs. DFS (Depth-First Search) explores as deep as possible using a stack/recursion, useful for topological sorting, cycle detection, and path finding.', aiScore: 8, finalScore: 8, verification: 'correct', components: { semantic: 0.88, coverage: 85, keywords: 'High', completeness: 82, htr: 94 }, feedback: 'Good comparative answer. The student correctly distinguished BFS and DFS in terms of data structures (queue vs stack/recursion) and use cases. The answer could be improved by mentioning specific applications more clearly.', reviewed: true, reason: '' },
-    { qNumber: 3, studentAnswer: 'AVL trees are balanced binary search trees. They use rotations to maintain balance. There are four types of rotations.', referenceAnswer: 'AVL trees are self-balancing binary search trees where the height difference between left and right subtrees is at most 1 (balance factor). They use rotations (LL, RR, LR, RL) to restore balance after insertions/deletions, ensuring O(log n) operations.', aiScore: 5, finalScore: 6, verification: 'partial', components: { semantic: 0.62, coverage: 55, keywords: 'Medium', completeness: 48, htr: 91 }, feedback: 'The student correctly identified AVL trees as balanced BSTs and mentioned rotations, but the answer lacks depth. Missing: balance factor definition, specific rotation types (LL, RR, LR, RL), and time complexity implications. Teacher adjusted score up by 1 mark due to partial correctness of core concept.', reviewed: true, reason: 'Student demonstrated understanding of core concept despite incomplete answer.' },
-    { qNumber: 4, studentAnswer: "To detect a cycle in a directed graph, we can use DFS with colors: white (unvisited), gray (in progress), black (done). If we encounter a gray node during DFS, there is a cycle. Alternatively, use Kahn's algorithm for topological sort.", referenceAnswer: 'Cycle detection in directed graphs: (1) DFS with three-color marking (white/gray/black) — encountering a gray node indicates back edge = cycle. (2) Kahn\'s algorithm — if topological sort cannot process all nodes, cycle exists. (3) Union-Find (for undirected only).', aiScore: 9, finalScore: 9, verification: 'correct', components: { semantic: 0.95, coverage: 93, keywords: 'High', completeness: 92, htr: 95 }, feedback: "Excellent answer. The student correctly described both DFS three-color approach and mentioned Kahn's algorithm as an alternative. Clear and well-structured explanation.", reviewed: true, reason: '' },
-    { qNumber: 5, studentAnswer: 'Hashing maps keys to indices using a hash function. Collisions occur when two keys map to the same index. Resolution techniques include chaining and open addressing (linear probing, quadratic probing, double hashing).', referenceAnswer: 'Hashing is a technique that maps keys to array indices using a hash function for O(1) average lookup. Collisions happen when different keys hash to the same index. Resolution: (1) Chaining — linked lists at each bucket. (2) Open addressing — linear probing, quadratic probing, double hashing.', aiScore: 9, finalScore: 9, verification: 'correct', components: { semantic: 0.93, coverage: 90, keywords: 'High', completeness: 88, htr: 93 }, feedback: 'Comprehensive answer covering both major collision resolution techniques with specific examples. Good technical vocabulary.', reviewed: true, reason: '' },
-    { qNumber: 6, studentAnswer: 'Arrays have fixed size and contiguous memory. Linked lists are dynamic with nodes connected by pointers. Arrays allow random access O(1), linked lists need sequential access O(n). Insertion in arrays is O(n), in linked lists O(1) if position known.', referenceAnswer: 'Arrays: fixed size, contiguous memory, O(1) random access, O(n) insertion/deletion. Linked lists: dynamic size, non-contiguous memory with pointers, O(n) access, O(1) insertion/deletion at known position. Trade-offs in memory usage and cache performance.', aiScore: 9, finalScore: 9, verification: 'correct', components: { semantic: 0.94, coverage: 92, keywords: 'High', completeness: 90, htr: 94 }, feedback: 'Excellent comparative answer covering size, memory layout, access patterns, and operation complexities. Well-structured and complete.', reviewed: true, reason: '' },
-    { qNumber: 7, studentAnswer: 'Quicksort picks a pivot, partitions array into elements less than and greater than pivot, then recursively sorts. Average time O(n log n), worst case O(n^2) when pivot is extreme.', referenceAnswer: 'Quicksort: (1) Choose pivot element. (2) Partition array around pivot. (3) Recursively sort sub-arrays. Time: O(n log n) average, O(n^2) worst case (mitigated by randomized pivot). Space: O(log n) for recursion. In-place sorting algorithm.', aiScore: 7, finalScore: 7, verification: 'partial', components: { semantic: 0.78, coverage: 72, keywords: 'Medium', completeness: 70, htr: 92 }, feedback: 'Good basic explanation of quicksort with correct time complexity. Missing: partition process details, space complexity, and optimization techniques (randomized pivot, median-of-three).', reviewed: true, reason: '' },
-    { qNumber: 8, studentAnswer: 'A binary search tree is a binary tree where left child < parent < right child. Properties: in-order traversal gives sorted order, search/insert/delete in O(log n) average, O(n) worst case.', referenceAnswer: 'BST: binary tree with ordering property — left subtree keys < node key < right subtree keys. Properties: in-order traversal yields sorted sequence, O(log n) average operations, O(n) worst case (degenerate). No duplicates typically.', aiScore: 9, finalScore: 9, verification: 'correct', components: { semantic: 0.92, coverage: 88, keywords: 'High', completeness: 86, htr: 95 }, feedback: 'Strong answer covering the BST property, in-order traversal, and time complexity analysis. Could mention handling of duplicates.', reviewed: true, reason: '' },
-    { qNumber: 9, studentAnswer: 'Stacks are used in expression evaluation for infix to postfix conversion and postfix evaluation. Also used for balancing parentheses and function call management.', referenceAnswer: 'Stack applications in expression evaluation: (1) Infix to postfix conversion using operator precedence. (2) Postfix expression evaluation. (3) Parentheses balancing. (4) Function call stack for recursion. (5) Undo operations.', aiScore: 7, finalScore: 7, verification: 'partial', components: { semantic: 0.75, coverage: 68, keywords: 'Medium', completeness: 65, htr: 90 }, feedback: 'Correct identification of main applications. Answer could be improved with more detailed explanation of how stacks are used in each application, especially the algorithm steps.', reviewed: true, reason: '' },
-    { qNumber: 10, studentAnswer: 'Dijkstra finds shortest path from source to all vertices. Uses priority queue. Does not work with negative edges.', referenceAnswer: "Dijkstra's algorithm: finds shortest path from source to all vertices in weighted graphs with non-negative edges. Uses priority queue (min-heap). Greedy approach — always picks minimum distance vertex. Time: O((V+E) log V) with binary heap. Does not work with negative edge weights (use Bellman-Ford instead).", aiScore: 4, finalScore: 4, verification: 'incorrect', components: { semantic: 0.45, coverage: 38, keywords: 'Low', completeness: 35, htr: 88 }, feedback: 'The answer is too brief and lacks essential details. While the student correctly mentioned priority queue usage and the negative edge limitation, the answer is missing: algorithm steps, time complexity, greedy approach, and applications. Needs significant expansion.', reviewed: true, reason: '' },
-]
-
 const AVATAR_COLORS = ['#1e3a5f', '#2563eb', '#059669', '#d97706', '#7c3aed', '#dc2626', '#0891b2', '#be185d']
 
 /* ============================================================
@@ -230,10 +171,18 @@ const AVATAR_COLORS = ['#1e3a5f', '#2563eb', '#059669', '#d97706', '#7c3aed', '#
    ============================================================ */
 
 function initials(name) {
-    return name.split(' ').map((p) => p[0]).join('').slice(0, 2).toUpperCase()
+    if (!name) return 'ST'
+    return name
+        .split(' ')
+        .filter(Boolean)
+        .map((p) => p[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase()
 }
 
 function avatarColor(name) {
+    if (!name) return AVATAR_COLORS[0]
     let hash = 0
     for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
     return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
@@ -247,6 +196,7 @@ function formatFileSize(bytes) {
 }
 
 function getFileExtension(name) {
+    if (!name) return ''
     return (name.split('.').pop() || '').toUpperCase()
 }
 
@@ -278,6 +228,13 @@ function Results() {
     const [currentExamId, setCurrentExamId] = useState(null)
     const [currentStudentId, setCurrentStudentId] = useState(null)
 
+    /* ---------- Loading states ---------- */
+    const [loadingExams, setLoadingExams] = useState(true)
+    const [loadingExamDetail, setLoadingExamDetail] = useState(false)
+    const [loadingEvaluations, setLoadingEvaluations] = useState(false)
+    const [isEvaluating, setIsEvaluating] = useState(false)
+    const [isFinalizing, setIsFinalizing] = useState(false)
+
     /* ---------- Dashboard state ---------- */
     const [examSearchQuery, setExamSearchQuery] = useState('')
     const [examStatusFilter, setExamStatusFilter] = useState('all')
@@ -290,8 +247,10 @@ function Results() {
     const [sortDir, setSortDir] = useState('asc')
 
     /* ---------- Student state ---------- */
-    const [studentState, setStudentState] = useState('evaluated')
-    const [studentEvaluations, setStudentEvaluations] = useState(SAMPLE_EVALUATIONS)
+    const [studentState, setStudentState] = useState('not_uploaded') // 'not_uploaded' | 'file_selected' | 'uploading' | 'htr_processing' | 'text_extracted' | 'ai_processing' | 'evaluation_completed' | 'finalized'
+    const [studentEvaluations, setStudentEvaluations] = useState([])
+    const [plainTextAnswer, setPlainTextAnswer] = useState('')
+    const [selectedQuestionId, setSelectedQuestionId] = useState(null)
     const [uploadedFile, setUploadedFile] = useState(null)
     const [uploadProgress, setUploadProgress] = useState(0)
     const [dragging, setDragging] = useState(false)
@@ -309,18 +268,64 @@ function Results() {
     const questionChartInstance = useRef(null)
     const fileInputRef = useRef(null)
 
-    /* ---------- Students data mutable copy ---------- */
-    const [studentsData, setStudentsData] = useState(STUDENTS_DATA)
+    /* ---------- Real Backend Data State ---------- */
+    const [examsData, setExamsData] = useState([])
+    const [examsError, setExamsError] = useState(null)
+    const [studentsData, setStudentsData] = useState([])
+    const [questionsData, setQuestionsData] = useState([])
 
     const currentExam = useMemo(
-        () => EXAMS_DATA.find((e) => e.id === currentExamId) || null,
-        [currentExamId]
+        () => examsData.find((e) => e.id === currentExamId) || null,
+        [currentExamId, examsData]
     )
 
     const currentStudent = useMemo(
-        () => studentsData.find((s) => s.id === currentStudentId) || null,
+        () => studentsData.find((s) => s.id === currentStudentId || s.student_id === currentStudentId) || null,
         [studentsData, currentStudentId]
     )
+
+    const fetchExams = async () => {
+        setLoadingExams(true)
+        setExamsError(null)
+        try {
+            const items = await api.get('/api/exams/')
+            if (Array.isArray(items)) {
+                setExamsData(
+                    items.map((exam) => ({
+                        id: exam.examination_id,
+                        title: exam.exam_name,
+                        code: exam.subject,
+                        subject: exam.subject,
+                        date: exam.exam_date ? new Date(exam.exam_date).toLocaleDateString() : 'N/A',
+                        dateISO: exam.exam_date,
+                        totalMarks: Number(exam.total_marks) || 0,
+                        questions: exam.question_count || 0,
+                        students: exam.student_count || 0,
+                        evaluated: exam.evaluated_count || 0,
+                        pending: exam.pending_count || 0,
+                        average: Number(exam.average_score) || 0,
+                        highest: Number(exam.highest_score) || 0,
+                        lowest: Number(exam.lowest_score) || 0,
+                        median: Number(exam.median_score) || 0,
+                        passRate: Number(exam.pass_rate) || 0,
+                        status: exam.status || 'pending',
+                        is_draft: !!exam.is_draft,
+                    }))
+                )
+            } else {
+                setExamsData([])
+            }
+        } catch (error) {
+            setExamsError(error.message || 'Unable to load results.')
+            showToast(error.message || 'Unable to load results.', true)
+        } finally {
+            setLoadingExams(false)
+        }
+    }
+
+    useEffect(() => {
+        fetchExams()
+    }, [])
 
     /* ---------- Toast auto-dismiss ---------- */
     useEffect(() => {
@@ -342,11 +347,11 @@ function Results() {
         const t = setTimeout(() => {
             if (scoreChartRef.current && !scoreChartInstance.current) {
                 const ranges = [
-                    { label: '90-100', count: studentsData.filter((s) => s.pct >= 90).length, color: '#059669' },
-                    { label: '80-89', count: studentsData.filter((s) => s.pct >= 80 && s.pct < 90).length, color: '#2563eb' },
-                    { label: '70-79', count: studentsData.filter((s) => s.pct >= 70 && s.pct < 80).length, color: '#0891b2' },
-                    { label: '60-69', count: studentsData.filter((s) => s.pct >= 60 && s.pct < 70).length, color: '#d97706' },
-                    { label: '50-59', count: studentsData.filter((s) => s.pct >= 50 && s.pct < 60).length, color: '#ea580c' },
+                    { label: '90-100', count: studentsData.filter((s) => s.pct !== null && s.pct >= 90).length, color: '#059669' },
+                    { label: '80-89', count: studentsData.filter((s) => s.pct !== null && s.pct >= 80 && s.pct < 90).length, color: '#2563eb' },
+                    { label: '70-79', count: studentsData.filter((s) => s.pct !== null && s.pct >= 70 && s.pct < 80).length, color: '#0891b2' },
+                    { label: '60-69', count: studentsData.filter((s) => s.pct !== null && s.pct >= 60 && s.pct < 70).length, color: '#d97706' },
+                    { label: '50-59', count: studentsData.filter((s) => s.pct !== null && s.pct >= 50 && s.pct < 60).length, color: '#ea580c' },
                     { label: '<50', count: studentsData.filter((s) => s.pct !== null && s.pct < 50).length, color: '#dc2626' },
                 ]
                 scoreChartInstance.current = new window.Chart(scoreChartRef.current, {
@@ -375,15 +380,15 @@ function Results() {
                 })
             }
 
-            if (questionChartRef.current && !questionChartInstance.current) {
+            if (questionChartRef.current && !questionChartInstance.current && questionsData.length > 0) {
                 questionChartInstance.current = new window.Chart(questionChartRef.current, {
                     type: 'line',
                     data: {
-                        labels: QUESTIONS_DATA.map((q) => 'Q' + q.number),
+                        labels: questionsData.map((q) => 'Q' + q.number),
                         datasets: [
                             {
                                 label: 'Average Score',
-                                data: QUESTIONS_DATA.map((q) => q.avgScore),
+                                data: questionsData.map((q) => Number(q.avgScore || 0)),
                                 borderColor: '#1e3a5f',
                                 backgroundColor: 'rgba(30, 58, 95, 0.1)',
                                 fill: true,
@@ -419,7 +424,7 @@ function Results() {
                 questionChartInstance.current = null
             }
         }
-    }, [view, currentExam, studentsData])
+    }, [view, currentExam, studentsData, questionsData])
 
     /* ============================================================
        NAVIGATION
@@ -433,10 +438,11 @@ function Results() {
         setSearchQuery('')
         setStatusFilter('all')
         setScoreFilter('all')
+        fetchExams()
         window.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
-    const openExam = (id) => {
+    const openExam = async (id) => {
         setCurrentExamId(id)
         setView('exam')
         setSearchQuery('')
@@ -444,25 +450,131 @@ function Results() {
         setScoreFilter('all')
         setSortField('name')
         setSortDir('asc')
+        setLoadingExamDetail(true)
         window.scrollTo({ top: 0, behavior: 'smooth' })
+
+        try {
+            const examDetail = await api.get(`/api/exams/${id}/`)
+            const parsedQuestions = (examDetail.questions || []).map((q) => ({
+                id: q.question_id,
+                question_id: q.question_id,
+                number: q.question_number,
+                text: q.question_text,
+                marks: Number(q.max_marks) || 0,
+                max_marks: Number(q.max_marks) || 0,
+                avgScore: q.avg_score || 0,
+                difficulty: q.difficulty || 'moderate',
+                referenceAnswer: q.reference_answer?.answer_text || '',
+            }))
+            setQuestionsData(parsedQuestions)
+
+            if (parsedQuestions.length > 0) {
+                setSelectedQuestionId(parsedQuestions[0].id)
+            }
+
+            const parsedStudents = (examDetail.students || []).map((s) => ({
+                id: s.roll_number,
+                student_id: s.student_id,
+                name: s.full_name,
+                roll_number: s.roll_number,
+                email: s.email,
+                score: s.score !== null && s.score !== undefined ? Number(s.score) : null,
+                finalScore: s.final_score !== null && s.final_score !== undefined ? Number(s.final_score) : (s.score !== null ? Number(s.score) : null),
+                aiScore: s.score !== null && s.score !== undefined ? Number(s.score) : null,
+                pct: s.pct !== null && s.pct !== undefined ? Number(s.pct) : null,
+                grade: s.grade || '',
+                status: s.status || 'pending',
+                hasEvaluations: !!s.has_evaluations,
+                isFinalized: !!s.is_finalized,
+            }))
+            setStudentsData(parsedStudents)
+
+            setExamsData((prev) =>
+                prev.map((e) =>
+                    e.id === id
+                        ? {
+                              ...e,
+                              title: examDetail.exam_name,
+                              subject: examDetail.subject,
+                              totalMarks: Number(examDetail.total_marks) || 0,
+                              questions: examDetail.question_count || 0,
+                              students: examDetail.student_count || 0,
+                              evaluated: examDetail.evaluated_count || 0,
+                              pending: examDetail.pending_count || 0,
+                              average: Number(examDetail.average_score) || 0,
+                              highest: Number(examDetail.highest_score) || 0,
+                              lowest: Number(examDetail.lowest_score) || 0,
+                              median: Number(examDetail.median_score) || 0,
+                              passRate: Number(examDetail.pass_rate) || 0,
+                              status: examDetail.status || 'pending',
+                          }
+                        : e
+                )
+            )
+        } catch (err) {
+            showToast(err.message || 'Unable to load exam details.', true)
+        } finally {
+            setLoadingExamDetail(false)
+        }
     }
 
-    const openStudent = (studentId) => {
-        const student = studentsData.find((s) => s.id === studentId)
+    const openStudent = async (studentId) => {
+        const student = studentsData.find((s) => s.id === studentId || s.student_id === studentId)
         if (!student) return
-        setCurrentStudentId(studentId)
-        if (student.status === 'pending') setStudentState('not_uploaded')
-        else if (student.status === 'processing') setStudentState('htr_processing')
-        else setStudentState('evaluation_completed')
-        setStudentEvaluations(SAMPLE_EVALUATIONS.map((e) => ({ ...e })))
+        setCurrentStudentId(student.id)
+        setView('student')
         setUploadedFile(null)
         setUploadProgress(0)
-        setView('student')
+        setPlainTextAnswer('')
+        setLoadingEvaluations(true)
         window.scrollTo({ top: 0, behavior: 'smooth' })
+
+        try {
+            const res = await api.get(`/api/exams/${currentExamId}/students/${student.student_id}/evaluations/`)
+            const evList = (res.evaluations || []).map((ev) => ({
+                evaluation_id: ev.evaluation_id,
+                qNumber: ev.qNumber,
+                question_id: ev.question_id,
+                question_text: ev.question_text,
+                studentAnswer: ev.studentAnswer || '',
+                referenceAnswer: ev.referenceAnswer || '',
+                aiScore: Number(ev.aiScore || 0),
+                finalScore: Number(ev.finalScore !== undefined ? ev.finalScore : ev.aiScore || 0),
+                verification: ev.verification || 'partial',
+                components: ev.components || { semantic: 0, coverage: 0, keywords: 'Low', completeness: 0, htr: 0 },
+                analysis: ev.analysis || {},
+                feedback: ev.feedback || '',
+                reviewed: !!ev.reviewed,
+                reason: ev.reason || '',
+                max_marks: Number(ev.max_marks) || 10,
+                evaluated_at: ev.evaluated_at,
+            }))
+            setStudentEvaluations(evList)
+
+            const activeQ = questionsData.find((q) => q.id === selectedQuestionId) || questionsData[0]
+            if (activeQ) {
+                setSelectedQuestionId(activeQ.id)
+                const existing = evList.find((e) => e.question_id === activeQ.id || e.qNumber === activeQ.number)
+                setPlainTextAnswer(existing?.studentAnswer || '')
+            }
+
+            if (res.is_finalized || res.result?.is_finalized) {
+                setStudentState('finalized')
+            } else if (evList.some((e) => e.evaluation_id !== null)) {
+                setStudentState('evaluation_completed')
+            } else {
+                setStudentState('not_uploaded')
+            }
+        } catch (err) {
+            showToast(err.message || 'Unable to load evaluations.', true)
+            setStudentState('not_uploaded')
+        } finally {
+            setLoadingEvaluations(false)
+        }
     }
 
     /* ============================================================
-       FILE HANDLING
+       FILE HANDLING (Upload UI preserved for future phase)
        ============================================================ */
 
     const handleFileSelected = (file) => {
@@ -486,7 +598,7 @@ function Results() {
 
     const resetUpload = () => {
         setUploadedFile(null)
-        setStudentState('not_uploaded')
+        setStudentState(studentEvaluations.some((e) => e.evaluation_id) ? 'evaluation_completed' : 'not_uploaded')
         if (fileInputRef.current) fileInputRef.current.value = ''
     }
 
@@ -501,61 +613,155 @@ function Results() {
         if (studentState !== 'uploading') return undefined
         let progress = 0
         const interval = setInterval(() => {
-            progress += Math.random() * 15 + 5
+            progress += Math.random() * 20 + 10
             if (progress >= 100) {
                 setUploadProgress(100)
                 clearInterval(interval)
                 setTimeout(() => {
                     setStudentState('htr_processing')
-                    setTimeout(() => setStudentState('text_extracted'), 4500)
-                }, 600)
+                    setTimeout(() => setStudentState('text_extracted'), 2500)
+                }, 400)
             } else {
                 setUploadProgress(progress)
             }
-        }, 250)
+        }, 200)
         return () => clearInterval(interval)
     }, [studentState])
 
     const startAIEvaluation = () => {
         setStudentState('ai_processing')
         setTimeout(() => {
-            setStudentState('evaluation_completed')
-            setStudentsData((prev) =>
-                prev.map((s) =>
-                    s.id === currentStudentId ? { ...s, status: 'evaluated' } : s
-                )
-            )
-            showToast('✓ AI evaluation completed')
-        }, 4000)
+            setStudentState(studentEvaluations.some((e) => e.evaluation_id) ? 'evaluation_completed' : 'not_uploaded')
+            showToast('Please enter the plain-text student answer below to run Phase 1 ASAG evaluation.', false)
+        }, 1500)
     }
 
     /* ============================================================
-       TEACHER REVIEW
+       PHASE 1 PLAIN TEXT ASAG EVALUATION
        ============================================================ */
 
-    const approveAI = (idx) => {
-        setStudentEvaluations((prev) =>
-            prev.map((ev, i) =>
-                i === idx
-                    ? { ...ev, finalScore: ev.aiScore, reviewed: true, reason: '' }
-                    : ev
-            )
-        )
-        showToast('✓ AI score approved')
+    const handleQuestionSelectionChange = (newQId) => {
+        const qIdNum = Number(newQId)
+        setSelectedQuestionId(qIdNum)
+        const existing = studentEvaluations.find((e) => e.question_id === qIdNum || e.qNumber === questionsData.find((q) => q.id === qIdNum)?.number)
+        setPlainTextAnswer(existing?.studentAnswer || '')
     }
 
-    const saveReview = (idx) => {
-        setStudentEvaluations((prev) =>
-            prev.map((ev, i) => (i === idx ? { ...ev, reviewed: true } : ev))
-        )
-        showToast('✓ Review saved')
+    const handleEvaluatePlainText = async (e) => {
+        if (e) e.preventDefault()
+        if (!plainTextAnswer.trim()) {
+            showToast('Please enter the student answer text.', true)
+            return
+        }
+
+        const targetQId = Number(selectedQuestionId) || (questionsData[0] ? questionsData[0].id : null)
+        if (!targetQId || !currentStudent) {
+            showToast('No question or student available for evaluation.', true)
+            return
+        }
+
+        setIsEvaluating(true)
+        setStudentState('ai_processing')
+
+        try {
+            await api.post(`/api/exams/${currentExamId}/evaluate/`, {
+                question_id: targetQId,
+                student_id: currentStudent.student_id,
+                student_answer: plainTextAnswer.trim(),
+            })
+
+            // Reload evaluations from backend
+            const res = await api.get(`/api/exams/${currentExamId}/students/${currentStudent.student_id}/evaluations/`)
+            const evList = (res.evaluations || []).map((ev) => ({
+                evaluation_id: ev.evaluation_id,
+                qNumber: ev.qNumber,
+                question_id: ev.question_id,
+                question_text: ev.question_text,
+                studentAnswer: ev.studentAnswer || '',
+                referenceAnswer: ev.referenceAnswer || '',
+                aiScore: Number(ev.aiScore || 0),
+                finalScore: Number(ev.finalScore !== undefined ? ev.finalScore : ev.aiScore || 0),
+                verification: ev.verification || 'partial',
+                components: ev.components || { semantic: 0, coverage: 0, keywords: 'Low', completeness: 0, htr: 0 },
+                analysis: ev.analysis || {},
+                feedback: ev.feedback || '',
+                reviewed: !!ev.reviewed,
+                reason: ev.reason || '',
+                max_marks: Number(ev.max_marks) || 10,
+                evaluated_at: ev.evaluated_at,
+            }))
+            setStudentEvaluations(evList)
+
+            // Refresh student item in studentsData
+            setStudentsData((prev) =>
+                prev.map((s) => (s.student_id === currentStudent.student_id ? { ...s, status: 'evaluated', hasEvaluations: true } : s))
+            )
+
+            setStudentState('evaluation_completed')
+            showToast('✓ AI evaluation completed successfully')
+        } catch (err) {
+            setStudentState(studentEvaluations.some((e) => e.evaluation_id) ? 'evaluation_completed' : 'not_uploaded')
+            showToast(err.message || 'Evaluation failed. Please check your answer and retry.', true)
+        } finally {
+            setIsEvaluating(false)
+        }
+    }
+
+    /* ============================================================
+       TEACHER REVIEW HANDLERS
+       ============================================================ */
+
+    const approveAI = async (idx) => {
+        const ev = studentEvaluations[idx]
+        if (!ev || !ev.evaluation_id) return
+        try {
+            await api.patch(`/api/evaluations/${ev.evaluation_id}/`, {
+                awarded_marks: ev.aiScore,
+                reason: '',
+                feedback: ev.feedback || '',
+            })
+            setStudentEvaluations((prev) =>
+                prev.map((item, i) =>
+                    i === idx ? { ...item, finalScore: item.aiScore, reviewed: true, reason: '' } : item
+                )
+            )
+            showToast('✓ AI score approved')
+        } catch (err) {
+            showToast(err.message || 'Unable to approve score.', true)
+        }
+    }
+
+    const saveReview = async (idx) => {
+        const ev = studentEvaluations[idx]
+        if (!ev || !ev.evaluation_id) return
+        const maxM = ev.max_marks || 10
+        if (ev.finalScore < 0 || ev.finalScore > maxM) {
+            showToast(`Score must be between 0 and ${maxM}.`, true)
+            return
+        }
+
+        try {
+            await api.patch(`/api/evaluations/${ev.evaluation_id}/`, {
+                awarded_marks: ev.finalScore,
+                reason: ev.reason || '',
+                feedback: ev.feedback || '',
+            })
+            setStudentEvaluations((prev) =>
+                prev.map((item, i) => (i === idx ? { ...item, reviewed: true } : item))
+            )
+            showToast('✓ Review saved')
+        } catch (err) {
+            showToast(err.message || 'Unable to save review.', true)
+        }
     }
 
     const updateFinalScore = (idx, value) => {
-        const q = QUESTIONS_DATA.find((qq) => qq.number === studentEvaluations[idx].qNumber)
-        const clamped = Math.max(0, Math.min(q.marks, Number(value) || 0))
+        const ev = studentEvaluations[idx]
+        const maxM = ev.max_marks || 10
+        const parsed = parseFloat(value)
+        const clamped = isNaN(parsed) ? 0 : Math.max(0, Math.min(maxM, parsed))
         setStudentEvaluations((prev) =>
-            prev.map((ev, i) => (i === idx ? { ...ev, finalScore: clamped } : ev))
+            prev.map((item, i) => (i === idx ? { ...item, finalScore: clamped } : item))
         )
     }
 
@@ -565,17 +771,56 @@ function Results() {
         )
     }
 
-    const finalizeResult = () => {
-        const finalTotal = studentEvaluations.reduce((s, e) => s + e.finalScore, 0)
-        setStudentsData((prev) =>
-            prev.map((s) =>
-                s.id === currentStudentId
-                    ? { ...s, finalScore: finalTotal, score: finalTotal, pct: finalTotal, status: 'reviewed' }
-                    : s
+    const finalizeResult = async () => {
+        if (!currentExam || !currentStudent) return
+
+        const unevaluated = studentEvaluations.filter((e) => !e.evaluation_id)
+        if (unevaluated.length > 0) {
+            showToast(`Please evaluate all questions before finalizing. (Q${unevaluated.map((u) => u.qNumber).join(', ')} pending)`, true)
+            return
+        }
+
+        try {
+            setIsFinalizing(true)
+            const res = await api.post(`/api/exams/${currentExamId}/students/${currentStudent.student_id}/finalize/`)
+            const total = Number(res.total_marks || 0)
+            const pct = Number(res.percentage || 0)
+            const grade = res.grade || ''
+
+            setStudentsData((prev) =>
+                prev.map((s) =>
+                    s.student_id === currentStudent.student_id
+                        ? { ...s, finalScore: total, score: total, pct: pct, grade: grade, status: 'reviewed', isFinalized: true }
+                        : s
+                )
             )
-        )
-        setStudentState('finalized')
-        showToast('✓ Result finalized successfully')
+            setStudentState('finalized')
+
+            // Update stats from server
+            const examDetail = await api.get(`/api/exams/${currentExamId}/`)
+            setExamsData((prev) =>
+                prev.map((e) =>
+                    e.id === currentExamId
+                        ? {
+                              ...e,
+                              evaluated: examDetail.evaluated_count,
+                              pending: examDetail.pending_count,
+                              average: Number(examDetail.average_score) || 0,
+                              highest: Number(examDetail.highest_score) || 0,
+                              lowest: Number(examDetail.lowest_score) || 0,
+                              median: Number(examDetail.median_score) || 0,
+                              passRate: Number(examDetail.pass_rate) || 0,
+                              status: examDetail.status,
+                          }
+                        : e
+                )
+            )
+            showToast('✓ Result finalized successfully')
+        } catch (err) {
+            showToast(err.message || 'Unable to finalize result.', true)
+        } finally {
+            setIsFinalizing(false)
+        }
     }
 
     /* ============================================================
@@ -584,12 +829,28 @@ function Results() {
 
     const doExport = (type) => {
         setExportModalOpen(false)
-        const msg =
-            type === 'csv'
-                ? '✓ CSV exported'
-                : type === 'pdf'
-                  ? '✓ PDF report generated'
-                  : '✓ Student report exported'
+        if (type === 'csv') {
+            if (studentsData.length === 0) {
+                showToast('No student data to export.', true)
+                return
+            }
+            const headers = 'Roll Number,Name,Email,Score,Percentage,Status,Grade\n'
+            const rows = studentsData
+                .map((s) => `"${s.roll_number || s.id}","${s.name}","${s.email || ''}",${s.score !== null ? s.score : ''},${s.pct !== null ? s.pct : ''},"${s.status}","${s.grade || ''}"`)
+                .join('\n')
+            const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' })
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.setAttribute('href', url)
+            link.setAttribute('download', `${currentExam?.title || 'Exam'}_Results.csv`)
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            showToast('✓ CSV exported successfully')
+            return
+        }
+
+        const msg = type === 'pdf' ? '✓ PDF report generated' : '✓ Student report exported'
         showToast(msg)
     }
 
@@ -599,7 +860,7 @@ function Results() {
 
     const filteredExams = useMemo(() => {
         const q = examSearchQuery.toLowerCase().trim()
-        return EXAMS_DATA.filter((e) => {
+        return examsData.filter((e) => {
             const matchSearch =
                 !q ||
                 e.title.toLowerCase().includes(q) ||
@@ -608,13 +869,13 @@ function Results() {
             const matchFilter = examStatusFilter === 'all' || e.status === examStatusFilter
             return matchSearch && matchFilter
         })
-    }, [examSearchQuery, examStatusFilter])
+    }, [examsData, examSearchQuery, examStatusFilter])
 
     const filteredStudents = useMemo(() => {
         const q = searchQuery.toLowerCase().trim()
         let list = studentsData.filter((s) => {
             const matchSearch =
-                !q || s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q)
+                !q || s.name.toLowerCase().includes(q) || (s.id && s.id.toLowerCase().includes(q))
             const matchStatus = statusFilter === 'all' || s.status === statusFilter
             let matchScore = true
             if (scoreFilter !== 'all' && s.pct !== null) {
@@ -629,10 +890,19 @@ function Results() {
         })
         list = [...list].sort((a, b) => {
             let va, vb
-            if (sortField === 'name') { va = a.name; vb = b.name }
-            else if (sortField === 'id') { va = a.id; vb = b.id }
-            else if (sortField === 'score') { va = a.pct || 0; vb = b.pct || 0 }
-            else if (sortField === 'status') { va = a.status; vb = b.status }
+            if (sortField === 'name') {
+                va = a.name
+                vb = b.name
+            } else if (sortField === 'id') {
+                va = a.id
+                vb = b.id
+            } else if (sortField === 'score') {
+                va = a.pct || 0
+                vb = b.pct || 0
+            } else if (sortField === 'status') {
+                va = a.status
+                vb = b.status
+            }
             if (va < vb) return sortDir === 'asc' ? -1 : 1
             if (va > vb) return sortDir === 'asc' ? 1 : -1
             return 0
@@ -645,13 +915,22 @@ function Results() {
        ============================================================ */
 
     const renderDashboard = () => {
-        const totalStudents = EXAMS_DATA.reduce((s, e) => s + e.students, 0)
-        const totalEvaluated = EXAMS_DATA.reduce((s, e) => s + e.evaluated, 0)
-        const totalPending = EXAMS_DATA.reduce((s, e) => s + e.pending, 0)
-        const avgScore = (
-            EXAMS_DATA.reduce((s, e) => s + e.average, 0) / EXAMS_DATA.length
-        ).toFixed(1)
-        const highestScore = Math.max(...EXAMS_DATA.map((e) => e.highest))
+        if (loadingExams) {
+            return <PageLoader message="Loading examination results..." />
+        }
+
+        if (examsError) {
+            return <ErrorState message={examsError} onRetry={fetchExams} />
+        }
+
+        const totalExams = examsData.length
+        const totalStudents = examsData.reduce((s, e) => s + e.students, 0)
+        const totalEvaluated = examsData.reduce((s, e) => s + e.evaluated, 0)
+        const totalPending = examsData.reduce((s, e) => s + e.pending, 0)
+        const avgScore = totalExams > 0 ? (examsData.reduce((s, e) => s + e.average, 0) / totalExams).toFixed(1) : '0.0'
+        const highestScore = totalExams > 0 ? Math.max(...examsData.map((e) => e.highest), 0) : 0
+        const avgPassRate = totalExams > 0 ? Math.round(examsData.reduce((s, e) => s + e.passRate, 0) / totalExams) : 0
+        const completionRate = totalStudents > 0 ? Math.round((totalEvaluated / totalStudents) * 100) : 0
 
         return (
             <>
@@ -670,6 +949,7 @@ function Results() {
                         <button
                             className="btn btn-outline btn-sm"
                             onClick={() => setExportModalOpen(true)}
+                            disabled={examsData.length === 0}
                         >
                             <Icon name="download" size={16} />
                             Export
@@ -683,7 +963,7 @@ function Results() {
                             <Icon name="file" size={14} />
                             Total Exams
                         </div>
-                        <div className="stat-value">{EXAMS_DATA.length}</div>
+                        <div className="stat-value">{totalExams}</div>
                         <div className="stat-sub">All examinations</div>
                     </div>
                     <div className="stat-card">
@@ -701,8 +981,7 @@ function Results() {
                         </div>
                         <div className="stat-value">{totalEvaluated}</div>
                         <div className="stat-sub">
-                            {Math.round((totalEvaluated / totalStudents) * 100)}%
-                            completion rate
+                            {completionRate}% completion rate
                         </div>
                     </div>
                     <div className="stat-card">
@@ -733,24 +1012,27 @@ function Results() {
                     <div className="stat-card">
                         <div className="stat-label">Pass Rate</div>
                         <div className="stat-value">
-                            84<span>%</span>
+                            {avgPassRate}
+                            <span>%</span>
                         </div>
                     </div>
                     <div className="stat-card">
-                        <div className="stat-label">Avg Eval Time</div>
+                        <div className="stat-label">Evaluated Sheets</div>
                         <div className="stat-value">
-                            2.4<span>min</span>
+                            {totalEvaluated}
                         </div>
                     </div>
                     <div className="stat-card">
-                        <div className="stat-label">HTR Accuracy</div>
+                        <div className="stat-label">ASAG Engine</div>
                         <div className="stat-value">
-                            94<span>%</span>
+                            Active
                         </div>
                     </div>
                     <div className="stat-card">
-                        <div className="stat-label">Reviewed</div>
-                        <div className="stat-value">312</div>
+                        <div className="stat-label">Total Questions</div>
+                        <div className="stat-value">
+                            {examsData.reduce((s, e) => s + e.questions, 0)}
+                        </div>
                     </div>
                 </div>
 
@@ -796,10 +1078,16 @@ function Results() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredExams.length === 0 ? (
+                                {loadingExams ? (
                                     <tr>
                                         <td colSpan={8} className="empty-state">
-                                            No exams found.
+                                            Loading examinations...
+                                        </td>
+                                    </tr>
+                                ) : filteredExams.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={8} className="empty-state">
+                                            No examinations found. Create an exam from the Create Exam section first.
                                         </td>
                                     </tr>
                                 ) : (
@@ -830,7 +1118,7 @@ function Results() {
                     </div>
 
                     <div className="table-footer">
-                        <span>Showing {filteredExams.length} of {EXAMS_DATA.length} exams</span>
+                        <span>Showing {filteredExams.length} of {examsData.length} exams</span>
                         <span style={{ fontSize: 12, color: 'var(--g400)' }}>
                             Click any row to view details
                         </span>
@@ -846,7 +1134,7 @@ function Results() {
 
     const renderExamDetails = () => {
         if (!currentExam) return null
-        const evalPct = Math.round((currentExam.evaluated / currentExam.students) * 100)
+        const evalPct = currentExam.students > 0 ? Math.round((currentExam.evaluated / currentExam.students) * 100) : 0
 
         return (
             <>
@@ -874,11 +1162,11 @@ function Results() {
                             </div>
                             <div className="exam-meta-item">
                                 <Icon name="help" size={15} />
-                                <strong>{currentExam.questions} questions</strong>
+                                <strong>{questionsData.length || currentExam.questions} questions</strong>
                             </div>
                             <div className="exam-meta-item">
                                 <Icon name="users" size={15} />
-                                <strong>{currentExam.students} students</strong>
+                                <strong>{studentsData.length || currentExam.students} students</strong>
                             </div>
                         </div>
                     </div>
@@ -886,6 +1174,7 @@ function Results() {
                         <button
                             className="btn btn-outline btn-sm"
                             onClick={() => setExportModalOpen(true)}
+                            disabled={studentsData.length === 0}
                         >
                             <Icon name="download" size={16} />
                             Export
@@ -966,17 +1255,8 @@ function Results() {
                         <div className="eval-status-list">
                             <div className="eval-status-item">
                                 <span className="dot done"></span>
-                                <strong>
-                                    {currentExam.evaluated - (currentExam.status === 'processing' ? 2 : 0)}
-                                </strong>{' '}
-                                Completed
+                                <strong>{currentExam.evaluated}</strong> Completed
                             </div>
-                            {currentExam.status === 'processing' && (
-                                <div className="eval-status-item">
-                                    <span className="dot proc"></span>
-                                    <strong>2</strong> Processing
-                                </div>
-                            )}
                             <div className="eval-status-item">
                                 <span className="dot wait"></span>
                                 <strong>{currentExam.pending}</strong> Pending
@@ -996,8 +1276,8 @@ function Results() {
                         </div>
                     </div>
                     <div className="question-analysis-grid">
-                        {QUESTIONS_DATA.map((q) => {
-                            const pct = Math.round((q.avgScore / q.marks) * 100)
+                        {questionsData.map((q) => {
+                            const pct = q.marks > 0 ? Math.round((q.avgScore / q.marks) * 100) : 0
                             const diffColor =
                                 q.difficulty === 'high'
                                     ? 'var(--green)'
@@ -1011,7 +1291,7 @@ function Results() {
                                       ? 'Moderate'
                                       : 'Needs Attention'
                             return (
-                                <div className="qa-card" key={q.number}>
+                                <div className="qa-card" key={q.id || q.number}>
                                     <div className="qa-card-header">
                                         <span className="qa-card-num">Q{q.number}</span>
                                         <span
@@ -1022,7 +1302,7 @@ function Results() {
                                         </span>
                                     </div>
                                     <div className="qa-card-text">
-                                        {q.text.substring(0, 60)}...
+                                        {q.text.substring(0, 60)}{q.text.length > 60 ? '...' : ''}
                                     </div>
                                     <div className="qa-card-stats">
                                         <span className="qa-card-avg">
@@ -1049,7 +1329,7 @@ function Results() {
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Search by name or ID..."
+                                    placeholder="Search by name or roll number..."
                                 />
                             </div>
                             <select
@@ -1060,7 +1340,6 @@ function Results() {
                                 <option value="all">All Status</option>
                                 <option value="evaluated">Evaluated</option>
                                 <option value="reviewed">Reviewed</option>
-                                <option value="processing">Processing</option>
                                 <option value="pending">Pending</option>
                             </select>
                             <select
@@ -1087,7 +1366,7 @@ function Results() {
                                 <option value="name-desc">Name Z→A</option>
                                 <option value="score-desc">Highest Score</option>
                                 <option value="score-asc">Lowest Score</option>
-                                <option value="id-asc">Register No.</option>
+                                <option value="id-asc">Roll No.</option>
                                 <option value="status-asc">Status</option>
                             </select>
                         </div>
@@ -1098,22 +1377,28 @@ function Results() {
                             <thead>
                                 <tr>
                                     <th>Student</th>
-                                    <th>Register No.</th>
+                                    <th>Roll Number</th>
                                     <th>Score</th>
                                     <th>Percentage</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredStudents.length === 0 ? (
+                                {loadingExamDetail ? (
+                                    <tr>
+                                        <td colSpan={5} style={{ padding: '32px 0' }}>
+                                            <PageLoader inline message="Loading student records for this exam..." />
+                                        </td>
+                                    </tr>
+                                ) : filteredStudents.length === 0 ? (
                                     <tr>
                                         <td colSpan={5} className="empty-state">
-                                            No students found.
+                                            No students assigned to this exam.
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredStudents.map((s) => (
-                                        <tr key={s.id} onClick={() => openStudent(s.id)}>
+                                        <tr key={s.id || s.student_id} onClick={() => openStudent(s.id)}>
                                             <td>
                                                 <div className="student-info-cell">
                                                     <div
@@ -1147,7 +1432,7 @@ function Results() {
                             Showing {filteredStudents.length} of {studentsData.length} students
                         </span>
                         <span style={{ fontSize: 12, color: 'var(--g400)' }}>
-                            Click any row to view detailed evaluation
+                            Click any row to evaluate or view detailed answer review
                         </span>
                     </div>
                 </div>
@@ -1156,8 +1441,119 @@ function Results() {
     }
 
     /* ============================================================
-       RENDER: STUDENT RESULT
+       RENDER: STUDENT RESULT & EVALUATION
        ============================================================ */
+
+    const renderPlainTextEvaluationPanel = () => {
+        if (studentState === 'finalized') return null
+
+        const currentQ = questionsData.find((q) => q.id === Number(selectedQuestionId)) || questionsData[0]
+        const currentEvalForQ = studentEvaluations.find((e) => e.question_id === currentQ?.id || e.qNumber === currentQ?.number)
+
+        return (
+            <div className="panel" style={{ marginBottom: 24 }}>
+                <div className="panel-header">
+                    <div>
+                        <h3>
+                            <Icon name="editPencil" size={20} />
+                            Student Answer Evaluation (Phase 1 — Plain Text)
+                        </h3>
+                        <p>Enter the student answer to run automated AI semantic evaluation against the question reference answer.</p>
+                    </div>
+                </div>
+                <div style={{ padding: '4px 0 8px 0' }}>
+                    <div style={{ display: 'flex', gap: 16, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <label style={{ fontWeight: 600, color: 'var(--g700)', fontSize: 14 }}>
+                            Select Question:
+                        </label>
+                        <select
+                            style={{
+                                padding: '8px 12px',
+                                borderRadius: 6,
+                                border: '1px solid var(--g300)',
+                                background: '#fff',
+                                color: 'var(--g800)',
+                                fontSize: 14,
+                                minWidth: 280,
+                            }}
+                            value={selectedQuestionId || (questionsData[0]?.id || '')}
+                            onChange={(e) => handleQuestionSelectionChange(e.target.value)}
+                        >
+                            {questionsData.map((q) => {
+                                const hasEv = studentEvaluations.some((ev) => (ev.question_id === q.id || ev.qNumber === q.number) && ev.evaluation_id)
+                                return (
+                                    <option key={q.id || q.number} value={q.id || q.number}>
+                                        {hasEv ? '✓ ' : '• '}Q{q.number}: {q.text.substring(0, 45)}... ({q.marks} marks)
+                                    </option>
+                                )
+                            })}
+                        </select>
+                    </div>
+
+                    {currentQ && (
+                        <div style={{ marginBottom: 16, padding: 14, background: 'var(--g50)', borderRadius: 8, border: '1px solid var(--brd)' }}>
+                            <div style={{ marginBottom: 8 }}>
+                                <strong style={{ color: 'var(--g900)' }}>Q{currentQ.number} ({currentQ.marks} marks): </strong>
+                                <span style={{ color: 'var(--g800)' }}>{currentQ.text}</span>
+                            </div>
+                            {currentQ.referenceAnswer && (
+                                <div style={{ fontSize: 13, color: 'var(--g600)', borderTop: '1px dashed var(--g300)', paddingTop: 8 }}>
+                                    <strong style={{ color: 'var(--navy)' }}>Reference Answer: </strong>
+                                    <span>{currentQ.referenceAnswer}</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    <div style={{ marginBottom: 16 }}>
+                        <label style={{ display: 'block', fontWeight: 600, color: 'var(--g700)', fontSize: 14, marginBottom: 6 }}>
+                            Student Answer:
+                        </label>
+                        <textarea
+                            style={{
+                                width: '100%',
+                                minHeight: 120,
+                                padding: 12,
+                                borderRadius: 8,
+                                border: '1px solid var(--g300)',
+                                fontFamily: 'inherit',
+                                fontSize: 14,
+                                lineHeight: 1.5,
+                                resize: 'vertical',
+                                background: '#fff',
+                                color: 'var(--g900)',
+                            }}
+                            placeholder="Type or paste the student's answer text here..."
+                            value={plainTextAnswer}
+                            onChange={(e) => setPlainTextAnswer(e.target.value)}
+                            disabled={isEvaluating}
+                        />
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                        <div style={{ fontSize: 13, color: 'var(--g500)' }}>
+                            {currentEvalForQ?.evaluation_id ? (
+                                <span style={{ color: 'var(--green)', fontWeight: 600 }}>
+                                    ✓ Evaluated (AI Score: {currentEvalForQ.aiScore}/{currentQ?.marks} marks) — Enter new text above to re-evaluate.
+                                </span>
+                            ) : (
+                                'Enter student plain-text answer and click Evaluate Answer.'
+                            )}
+                        </div>
+                        <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={handleEvaluatePlainText}
+                            disabled={!plainTextAnswer.trim() || isEvaluating}
+                        >
+                            <Icon name="ai" size={16} />
+                            {isEvaluating ? 'Evaluating with ASAG...' : 'Evaluate Answer with AI'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
 
     const renderUploadZone = () => (
         <div className="panel">
@@ -1165,7 +1561,7 @@ function Results() {
                 <div>
                     <h3>
                         <Icon name="upload" size={20} />
-                        Upload Answer Sheet
+                        Upload Answer Sheet (Future HTR / OCR Workflow)
                     </h3>
                     <p>Drag and drop the handwritten answer sheet, or click to browse your files</p>
                 </div>
@@ -1293,17 +1689,7 @@ function Results() {
                     </div>
                     <div className="file-preview-box">
                         <h5>Questions Expected</h5>
-                        <div className="value">{QUESTIONS_DATA.length} questions</div>
-                    </div>
-                </div>
-
-                <div className="info-banner" style={{ marginTop: 20 }}>
-                    <Icon name="info" size={18} />
-                    <div>
-                        <strong>What happens next?</strong> The answer sheet will be
-                        processed through our Handwritten Text Recognition (HTR)
-                        engine, then evaluated by the AI system. You'll be able to
-                        review extracted answers and AI feedback before finalizing.
+                        <div className="value">{questionsData.length} questions</div>
                     </div>
                 </div>
             </div>
@@ -1348,7 +1734,7 @@ function Results() {
                         <Icon name="search" size={20} />
                         Processing Answer Sheet
                     </h3>
-                    <p>Handwritten Text Recognition (HTR) is analyzing the answer sheet</p>
+                    <p>Handwritten Text Recognition (HTR) simulation</p>
                 </div>
             </div>
             <div className="htr-processing">
@@ -1362,7 +1748,7 @@ function Results() {
                 </div>
                 <div className="htr-title">Reading handwritten answers...</div>
                 <div className="htr-subtitle">
-                    Our HTR engine is extracting text from the answer sheet
+                    Extracting text from the answer sheet
                 </div>
                 <div className="htr-steps">
                     <div className="htr-step done">
@@ -1385,71 +1771,36 @@ function Results() {
                     </div>
                     <div className="htr-step">
                         <div className="check"></div>
-                        <span>Answer segmentation</span>
-                    </div>
-                    <div className="htr-step">
-                        <div className="check"></div>
                         <span>AI evaluation</span>
-                    </div>
-                    <div className="htr-step">
-                        <div className="check"></div>
-                        <span>Result generation</span>
                     </div>
                 </div>
             </div>
         </div>
     )
 
-    const renderExtractedAnswers = () => {
-        const sampleTexts = [
-            'A stack is a linear data structure where insertion and deletion occur from one end. It follows the LIFO principle.',
-            'BFS uses a queue and explores level by level. DFS uses a stack or recursion and goes deep first.',
-            'AVL trees are balanced binary search trees. They use rotations to maintain balance.',
-            'To detect a cycle in a directed graph, we can use DFS with colors: white, gray, black.',
-            'Hashing maps keys to indices using a hash function. Collisions occur when two keys map to same index.',
-        ]
-        const confidences = [96, 94, 91, 95, 93]
-
-        return (
-            <div className="panel">
-                <div className="panel-header">
-                    <div>
-                        <h3>
-                            <Icon name="file" size={20} />
-                            Extracted Answers
-                        </h3>
-                        <p>Review the text extracted from the handwritten answer sheet</p>
-                    </div>
-                    <button className="btn btn-primary btn-sm" onClick={startAIEvaluation}>
-                        <Icon name="ai" size={14} />
-                        Start AI Evaluation
-                    </button>
+    const renderExtractedAnswers = () => (
+        <div className="panel">
+            <div className="panel-header">
+                <div>
+                    <h3>
+                        <Icon name="file" size={20} />
+                        Extracted Answers Preview
+                    </h3>
+                    <p>Review the text extracted from the document</p>
                 </div>
-
-                <div className="info-banner">
-                    <Icon name="info" size={18} />
-                    <div>
-                        HTR has extracted {QUESTIONS_DATA.length} answers with an average
-                        confidence of <strong>94%</strong>. Please verify before AI
-                        evaluation.
-                    </div>
-                </div>
-
-                {QUESTIONS_DATA.slice(0, 5).map((q, i) => (
-                    <div className="extracted-answer" key={q.number}>
-                        <div className="q-label">
-                            <span>Question {q.number}</span>
-                            <span className="confidence">HTR: {confidences[i]}%</span>
-                        </div>
-                        <div className="text">"{sampleTexts[i]}"</div>
-                    </div>
-                ))}
-                <div style={{ textAlign: 'center', padding: 16, color: 'var(--g500)', fontSize: 13 }}>
-                    Showing 5 of {QUESTIONS_DATA.length} extracted answers
+                <button className="btn btn-primary btn-sm" onClick={startAIEvaluation}>
+                    <Icon name="ai" size={14} />
+                    Proceed to Evaluation
+                </button>
+            </div>
+            <div className="info-banner">
+                <Icon name="info" size={18} />
+                <div>
+                    Document preview ready. Use the Plain-Text Evaluation section below to run the active Phase 1 ASAG evaluation.
                 </div>
             </div>
-        )
-    }
+        </div>
+    )
 
     const renderAIProcessing = () => (
         <div className="panel">
@@ -1459,7 +1810,7 @@ function Results() {
                         <Icon name="ai" size={20} />
                         AI Evaluation in Progress
                     </h3>
-                    <p>Semantic analysis and scoring is being performed</p>
+                    <p>ASAG semantic similarity and NLI evaluation running</p>
                 </div>
             </div>
             <div className="htr-processing">
@@ -1474,40 +1825,30 @@ function Results() {
                         </div>
                     </div>
                 </div>
-                <div className="htr-title">AI is evaluating answers...</div>
-                <div className="htr-subtitle">Semantic analysis and scoring in progress</div>
+                <div className="htr-title">AI is evaluating student answer...</div>
+                <div className="htr-subtitle">Running Sentence-Transformers and NLI DeBERTa model</div>
                 <div className="htr-steps">
                     <div className="htr-step done">
                         <div className="check">
                             <Icon name="check" size={12} />
                         </div>
-                        <span>Answer sheet uploaded</span>
+                        <span>Answer text received</span>
                     </div>
                     <div className="htr-step done">
                         <div className="check">
                             <Icon name="check" size={12} />
                         </div>
-                        <span>Handwritten text recognition</span>
-                    </div>
-                    <div className="htr-step done">
-                        <div className="check">
-                            <Icon name="check" size={12} />
-                        </div>
-                        <span>Answer segmentation</span>
+                        <span>Reference answer loaded</span>
                     </div>
                     <div className="htr-step active">
                         <div className="check">
                             <div className="spinner" />
                         </div>
-                        <span>AI semantic evaluation</span>
+                        <span>ASAG semantic similarity &amp; NLI inference</span>
                     </div>
                     <div className="htr-step">
                         <div className="check"></div>
-                        <span>Score generation</span>
-                    </div>
-                    <div className="htr-step">
-                        <div className="check"></div>
-                        <span>Feedback composition</span>
+                        <span>Score calculation &amp; feedback</span>
                     </div>
                 </div>
             </div>
@@ -1517,11 +1858,12 @@ function Results() {
     const renderEvaluations = () => {
         if (!currentExam) return null
 
-        const aiTotal = studentEvaluations.reduce((s, e) => s + e.aiScore, 0)
-        const finalTotal = studentEvaluations.reduce((s, e) => s + e.finalScore, 0)
-        const correct = studentEvaluations.filter((e) => e.verification === 'correct').length
-        const partial = studentEvaluations.filter((e) => e.verification === 'partial').length
-        const incorrect = studentEvaluations.filter((e) => e.verification === 'incorrect').length
+        const evaluatedList = studentEvaluations.filter((e) => e.evaluation_id !== null)
+        const aiTotal = evaluatedList.reduce((s, e) => s + e.aiScore, 0)
+        const finalTotal = evaluatedList.reduce((s, e) => s + e.finalScore, 0)
+        const correct = evaluatedList.filter((e) => e.verification === 'correct').length
+        const partial = evaluatedList.filter((e) => e.verification === 'partial').length
+        const incorrect = evaluatedList.filter((e) => e.verification === 'incorrect').length
         const adjustment = finalTotal - aiTotal
 
         return (
@@ -1537,9 +1879,13 @@ function Results() {
                         </div>
                         <div style={{ display: 'flex', gap: 10 }}>
                             {studentState !== 'finalized' && (
-                                <button className="btn btn-success btn-sm" onClick={finalizeResult}>
+                                <button
+                                    className="btn btn-success btn-sm"
+                                    onClick={finalizeResult}
+                                    disabled={isFinalizing || studentEvaluations.some((e) => !e.evaluation_id)}
+                                >
                                     <Icon name="check" size={14} />
-                                    Finalize Result
+                                    {isFinalizing ? 'Finalizing...' : 'Finalize Result'}
                                 </button>
                             )}
                             <button
@@ -1553,7 +1899,34 @@ function Results() {
                     </div>
 
                     {studentEvaluations.map((ev, idx) => {
-                        const q = QUESTIONS_DATA.find((qq) => qq.number === ev.qNumber)
+                        const q = questionsData.find((qq) => qq.number === ev.qNumber || qq.id === ev.question_id) || { marks: ev.max_marks || 10, text: ev.question_text || '' }
+                        const isUnevaluated = !ev.evaluation_id
+
+                        if (isUnevaluated) {
+                            return (
+                                <div className="q-eval-card" key={ev.question_id || ev.qNumber || idx} style={{ opacity: 0.85 }}>
+                                    <div className="q-eval-header">
+                                        <div className="q-eval-header-left">
+                                            <span className="q-number">Q{ev.qNumber}</span>
+                                            <span className="q-marks">{q.marks} marks</span>
+                                            <span className="q-verification partial">
+                                                <Icon name="clock" size={14} />
+                                                Not Evaluated
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="q-eval-body">
+                                        <div className="q-question-text">
+                                            <strong>Question:</strong> {q.text}
+                                        </div>
+                                        <div style={{ padding: 14, background: 'var(--g50)', borderRadius: 8, fontSize: 13, color: 'var(--g600)' }}>
+                                            Select Question {ev.qNumber} above, enter the student's answer, and click "Evaluate Answer with AI" to evaluate.
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        }
+
                         const verifLabel =
                             ev.verification === 'correct'
                                 ? '✓ Correct'
@@ -1566,23 +1939,15 @@ function Results() {
                                 : ev.verification === 'partial'
                                   ? 'minus'
                                   : 'x'
-                        const semClass =
-                            ev.components.semantic >= 0.85
-                                ? 'high'
-                                : ev.components.semantic >= 0.65
-                                  ? 'mid'
-                                  : 'low'
-                        const covClass =
-                            ev.components.coverage >= 85 ? 'high' : ev.components.coverage >= 65 ? 'mid' : 'low'
-                        const compClass =
-                            ev.components.completeness >= 85
-                                ? 'high'
-                                : ev.components.completeness >= 65
-                                  ? 'mid'
-                                  : 'low'
+                        const semVal = typeof ev.components?.semantic === 'number' ? ev.components.semantic : 0
+                        const semClass = semVal >= 0.8 ? 'high' : semVal >= 0.5 ? 'mid' : 'low'
+                        const covVal = Number(ev.components?.coverage || 0)
+                        const covClass = covVal >= 80 ? 'high' : covVal >= 50 ? 'mid' : 'low'
+                        const compVal = Number(ev.components?.completeness || 0)
+                        const compClass = compVal >= 80 ? 'high' : compVal >= 50 ? 'mid' : 'low'
 
                         return (
-                            <div className="q-eval-card" key={ev.qNumber}>
+                            <div className="q-eval-card" key={ev.evaluation_id || ev.qNumber || idx}>
                                 <div className="q-eval-header">
                                     <div className="q-eval-header-left">
                                         <span className="q-number">Q{ev.qNumber}</span>
@@ -1610,43 +1975,45 @@ function Results() {
                                                 <Icon name="editPencil" size={13} />
                                                 Student Answer
                                             </div>
-                                            <div className="content">{ev.studentAnswer}</div>
+                                            <div className="content">{ev.studentAnswer || '(No answer provided)'}</div>
                                         </div>
                                         <div className="answer-box reference">
                                             <div className="label">
                                                 <Icon name="book" size={13} />
                                                 Reference Answer
                                             </div>
-                                            <div className="content">{ev.referenceAnswer}</div>
+                                            <div className="content">{ev.referenceAnswer || '(No reference answer configured)'}</div>
                                         </div>
                                     </div>
 
                                     <div className="eval-components">
                                         <div className="eval-component">
-                                            <div className="label">Semantic</div>
+                                            <div className="label">Semantic Similarity</div>
                                             <div className={`value ${semClass}`}>
-                                                {ev.components.semantic.toFixed(2)}
+                                                {semVal.toFixed(2)}
                                             </div>
                                         </div>
                                         <div className="eval-component">
                                             <div className="label">Coverage</div>
-                                            <div className={`value ${covClass}`}>{ev.components.coverage}%</div>
+                                            <div className={`value ${covClass}`}>{covVal}%</div>
                                         </div>
                                         <div className="eval-component">
                                             <div className="label">Keywords</div>
                                             <div className="value" style={{ fontSize: 14 }}>
-                                                {ev.components.keywords}
+                                                {ev.components?.keywords || 'Medium'}
                                             </div>
                                         </div>
                                         <div className="eval-component">
-                                            <div className="label">Complete</div>
+                                            <div className="label">Completeness</div>
                                             <div className={`value ${compClass}`}>
-                                                {ev.components.completeness}%
+                                                {compVal}%
                                             </div>
                                         </div>
                                         <div className="eval-component">
-                                            <div className="label">HTR Conf.</div>
-                                            <div className="value high">{ev.components.htr}%</div>
+                                            <div className="label">Status</div>
+                                            <div className="value high" style={{ fontSize: 13 }}>
+                                                {ev.analysis?.verification || 'Evaluated'}
+                                            </div>
                                         </div>
                                     </div>
 
@@ -1655,7 +2022,7 @@ function Results() {
                                             <Icon name="ai" size={14} />
                                             AI Feedback
                                         </div>
-                                        <div className="ai-feedback-text">{ev.feedback}</div>
+                                        <div className="ai-feedback-text">{ev.feedback || 'Answer evaluated.'}</div>
                                     </div>
 
                                     <div className="teacher-review">
@@ -1686,6 +2053,7 @@ function Results() {
                                                     value={ev.finalScore}
                                                     min="0"
                                                     max={q.marks}
+                                                    step="0.5"
                                                     onChange={(e) => updateFinalScore(idx, e.target.value)}
                                                     disabled={studentState === 'finalized'}
                                                 />
@@ -1726,93 +2094,112 @@ function Results() {
                     })}
                 </div>
 
-                <div className="overall-summary">
-                    <h3>
-                        <Icon name="chart" size={20} />
-                        Overall Performance Summary
-                    </h3>
-                    <div className="overall-grid">
-                        <div className="overall-item">
-                            <div className="label">Total Marks</div>
-                            <div className="value">{currentExam.totalMarks}</div>
+                {evaluatedList.length > 0 && (
+                    <div className="overall-summary">
+                        <h3>
+                            <Icon name="chart" size={20} />
+                            Overall Performance Summary
+                        </h3>
+                        <div className="overall-grid">
+                            <div className="overall-item">
+                                <div className="label">Total Marks</div>
+                                <div className="value">{currentExam.totalMarks}</div>
+                            </div>
+                            <div className="overall-item">
+                                <div className="label">AI Evaluated</div>
+                                <div className="value">{aiTotal}</div>
+                            </div>
+                            <div className="overall-item">
+                                <div className="label">Final Marks</div>
+                                <div className="value green">{finalTotal}</div>
+                            </div>
+                            <div className="overall-item">
+                                <div className="label">Percentage</div>
+                                <div className="value">
+                                    {currentExam.totalMarks > 0 ? Math.round((finalTotal / currentExam.totalMarks) * 100) : 0}%
+                                </div>
+                            </div>
                         </div>
-                        <div className="overall-item">
-                            <div className="label">AI Evaluated</div>
-                            <div className="value">{aiTotal}</div>
-                        </div>
-                        <div className="overall-item">
-                            <div className="label">Final Marks</div>
-                            <div className="value green">{finalTotal}</div>
-                        </div>
-                        <div className="overall-item">
-                            <div className="label">Percentage</div>
-                            <div className="value">
-                                {Math.round((finalTotal / currentExam.totalMarks) * 100)}%
+                        {adjustment !== 0 && (
+                            <div className="warning-banner">
+                                <Icon name="warning" size={16} />
+                                Teacher adjustment:{' '}
+                                <strong>
+                                    {adjustment > 0 ? '+' : ''}
+                                    {adjustment}
+                                </strong>{' '}
+                                marks (AI total: {aiTotal} → Final: {finalTotal})
+                            </div>
+                        )}
+                        <div className="score-breakdown">
+                            <div className="breakdown-item">
+                                <span className="breakdown-dot green" />
+                                <div className="breakdown-info">
+                                    <div className="label">Correct</div>
+                                    <div className="value">
+                                        {correct} / {evaluatedList.length}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="breakdown-item">
+                                <span className="breakdown-dot amber" />
+                                <div className="breakdown-info">
+                                    <div className="label">Partially Correct</div>
+                                    <div className="value">
+                                        {partial} / {evaluatedList.length}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="breakdown-item">
+                                <span className="breakdown-dot red" />
+                                <div className="breakdown-info">
+                                    <div className="label">Incorrect</div>
+                                    <div className="value">
+                                        {incorrect} / {evaluatedList.length}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    {adjustment !== 0 && (
-                        <div className="warning-banner">
-                            <Icon name="warning" size={16} />
-                            Teacher adjustment:{' '}
-                            <strong>
-                                {adjustment > 0 ? '+' : ''}
-                                {adjustment}
-                            </strong>{' '}
-                            marks (AI total: {aiTotal} → Final: {finalTotal})
-                        </div>
-                    )}
-                    <div className="score-breakdown">
-                        <div className="breakdown-item">
-                            <span className="breakdown-dot green" />
-                            <div className="breakdown-info">
-                                <div className="label">Correct</div>
-                                <div className="value">
-                                    {correct} / {studentEvaluations.length}
-                                </div>
-                            </div>
-                        </div>
-                        <div className="breakdown-item">
-                            <span className="breakdown-dot amber" />
-                            <div className="breakdown-info">
-                                <div className="label">Partially Correct</div>
-                                <div className="value">
-                                    {partial} / {studentEvaluations.length}
-                                </div>
-                            </div>
-                        </div>
-                        <div className="breakdown-item">
-                            <span className="breakdown-dot red" />
-                            <div className="breakdown-info">
-                                <div className="label">Incorrect</div>
-                                <div className="value">
-                                    {incorrect} / {studentEvaluations.length}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                )}
             </>
         )
     }
 
     const renderStudentResult = () => {
         if (!currentExam || !currentStudent) return null
-        const pct = currentStudent.pct || 0
+        const pct = currentStudent.pct !== null && currentStudent.pct !== undefined ? currentStudent.pct : 0
 
         let bodyContent = null
-        if (studentState === 'not_uploaded') bodyContent = renderUploadZone()
-        else if (studentState === 'file_selected') bodyContent = renderFileInfo()
-        else if (studentState === 'uploading') bodyContent = renderUploading()
-        else if (studentState === 'htr_processing') bodyContent = renderHTRProcessing()
-        else if (studentState === 'text_extracted') bodyContent = renderExtractedAnswers()
-        else if (studentState === 'ai_processing') bodyContent = renderAIProcessing()
-        else if (
+        if (studentState === 'not_uploaded') {
+            bodyContent = (
+                <>
+                    {renderPlainTextEvaluationPanel()}
+                    {renderUploadZone()}
+                </>
+            )
+        } else if (studentState === 'file_selected') {
+            bodyContent = renderFileInfo()
+        } else if (studentState === 'uploading') {
+            bodyContent = renderUploading()
+        } else if (studentState === 'htr_processing') {
+            bodyContent = renderHTRProcessing()
+        } else if (studentState === 'text_extracted') {
+            bodyContent = renderExtractedAnswers()
+        } else if (studentState === 'ai_processing') {
+            bodyContent = renderAIProcessing()
+        } else if (
             studentState === 'evaluation_completed' ||
             studentState === 'teacher_review' ||
             studentState === 'finalized'
-        )
-            bodyContent = renderEvaluations()
+        ) {
+            bodyContent = (
+                <>
+                    {studentState !== 'finalized' && renderPlainTextEvaluationPanel()}
+                    {renderEvaluations()}
+                </>
+            )
+        }
 
         return (
             <>
@@ -1831,11 +2218,11 @@ function Results() {
                         <div className="student-result-meta">
                             <div className="meta-chip">
                                 <Icon name="calendar" size={14} />
-                                Register: <strong>{currentStudent.id}</strong>
+                                Roll No: <strong>{currentStudent.id}</strong>
                             </div>
                             <div className="meta-chip">
                                 <Icon name="file" size={14} />
-                                Total: <strong>{currentExam.totalMarks}</strong>
+                                Total Marks: <strong>{currentExam.totalMarks}</strong>
                             </div>
                             <div className="meta-chip">{statusBadge(currentStudent.status)}</div>
                         </div>
@@ -1844,7 +2231,9 @@ function Results() {
                         <div className="score-circle" style={{ '--pct': pct }}>
                             <div className="score-circle-inner">
                                 <div className="big">
-                                    {currentStudent.finalScore || currentStudent.score}
+                                    {currentStudent.finalScore !== null && currentStudent.finalScore !== undefined
+                                        ? currentStudent.finalScore
+                                        : currentStudent.score}
                                 </div>
                                 <div className="small">
                                     / {currentExam.totalMarks} · {pct}%
@@ -1854,7 +2243,13 @@ function Results() {
                     )}
                 </div>
 
-                {bodyContent}
+                {loadingEvaluations ? (
+                    <div className="panel" style={{ padding: '32px 0' }}>
+                        <PageLoader inline message="Loading student evaluation details..." />
+                    </div>
+                ) : (
+                    bodyContent
+                )}
             </>
         )
     }
@@ -1878,7 +2273,7 @@ function Results() {
             >
                 <div className="modal">
                     <h3>Export Results</h3>
-                    <p>Choose a format to export the evaluation results.</p>
+                    <p>Choose a format to export the examination evaluation results.</p>
                     <div className="modal-export-list">
                         <button className="btn btn-outline" onClick={() => doExport('csv')}>
                             <Icon name="file" size={16} />

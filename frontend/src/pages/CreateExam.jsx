@@ -259,6 +259,8 @@ function CreateExam() {
                 if (!next[q.number]) {
                     next[q.number] = {
                         reference: '',
+                        facts: [],
+                        isApproved: true,
                         concepts: [],
                         criteria: [{ name: 'Core concept', marks: q.marks || 0 }],
                         guidance: '',
@@ -540,8 +542,12 @@ function CreateExam() {
         ? selectedQNumber
         : (qpQuestions[0]?.number || 1)
     const currentQuestion = qpQuestions.find((q) => q.number === activeQNum) || qpQuestions[0]
+    const [isGeneratingFacts, setIsGeneratingFacts] = useState(false)
+
     const currentAnswer = (currentQuestion && akAnswers[currentQuestion.number]) || {
         reference: '',
+        facts: [],
+        isApproved: true,
         concepts: [],
         criteria: [{ name: 'Core concept', marks: currentQuestion?.marks || 0 }],
         guidance: '',
@@ -554,6 +560,8 @@ function CreateExam() {
         setAkAnswers((prev) => {
             const existing = prev[qNum] || {
                 reference: '',
+                facts: [],
+                isApproved: true,
                 concepts: [],
                 criteria: [{ name: 'Core concept', marks: currentQuestion?.marks || 0 }],
                 guidance: '',
@@ -569,6 +577,70 @@ function CreateExam() {
                 },
             }
         })
+    }
+
+    const generateFactsForCurrentQuestion = async () => {
+        const qNum = currentQuestion ? currentQuestion.number : selectedQNumber
+        const answer = akAnswers[qNum] || currentAnswer
+        if (!answer.reference?.trim()) {
+            showToast('Please enter a reference answer first before generating candidate facts.', 'error')
+            return
+        }
+
+        setIsGeneratingFacts(true)
+        try {
+            const res = await api.post('/api/reference-answers/generate-facts/', {
+                reference_answer: answer.reference.trim(),
+            })
+            const generated = Array.isArray(res?.facts) ? res.facts : []
+            if (generated.length === 0) {
+                showToast('Could not extract distinct facts. You can add facts manually.', 'warning')
+            } else {
+                updateAnswer('facts', generated)
+                updateAnswer('isApproved', true)
+                showToast(`Generated ${generated.length} candidate fact(s) for Question ${qNum}.`)
+            }
+        } catch (err) {
+            console.error('Fact generation error:', err)
+            // Client-side fallback
+            const fallbackFacts = answer.reference
+                .split(/(?<=[.?!;])\s+|\n+/)
+                .map((f) => f.trim().replace(/^(?:\d+[\.\)]|\([a-zA-Z0-9]+\)|[•\*\-])\s*/, ''))
+                .filter((f) => f.length > 3)
+            const resolved = fallbackFacts.length > 0 ? fallbackFacts : [answer.reference.trim()]
+            updateAnswer('facts', resolved)
+            updateAnswer('isApproved', true)
+            showToast(`Generated ${resolved.length} candidate fact(s) locally.`)
+        } finally {
+            setIsGeneratingFacts(false)
+        }
+    }
+
+    const addFactForCurrentQuestion = () => {
+        const qNum = currentQuestion ? currentQuestion.number : selectedQNumber
+        const existingFacts = akAnswers[qNum]?.facts || []
+        updateAnswer('facts', [...existingFacts, ''])
+    }
+
+    const updateFactForCurrentQuestion = (index, newText) => {
+        const qNum = currentQuestion ? currentQuestion.number : selectedQNumber
+        const existingFacts = [...(akAnswers[qNum]?.facts || [])]
+        existingFacts[index] = newText
+        updateAnswer('facts', existingFacts)
+    }
+
+    const deleteFactForCurrentQuestion = (index) => {
+        const qNum = currentQuestion ? currentQuestion.number : selectedQNumber
+        const existingFacts = (akAnswers[qNum]?.facts || []).filter((_, i) => i !== index)
+        updateAnswer('facts', existingFacts)
+        showToast('Reference fact removed.')
+    }
+
+    const toggleApproveFactsForCurrentQuestion = () => {
+        const qNum = currentQuestion ? currentQuestion.number : selectedQNumber
+        const currentApproved = akAnswers[qNum]?.isApproved !== false
+        updateAnswer('isApproved', !currentApproved)
+        showToast(!currentApproved ? 'Facts approved for ASAG AI evaluation.' : 'Facts marked pending review.')
     }
 
     const markReviewed = () => {
@@ -805,6 +877,8 @@ function CreateExam() {
                     max_marks: q.marks || 1,
                     question_type: 'descriptive',
                     reference_answer: akAnswers[q.number]?.reference || '',
+                    reference_facts: (akAnswers[q.number]?.facts || []).filter((f) => typeof f === 'string' && f.trim().length > 0),
+                    is_approved: akAnswers[q.number]?.isApproved !== false,
                 })),
                 students: students
                     .filter((s) => s.selected)
@@ -854,6 +928,8 @@ function CreateExam() {
                     max_marks: question.marks,
                     question_type: 'descriptive',
                     reference_answer: akAnswers[question.number]?.reference?.trim() || '',
+                    reference_facts: (akAnswers[question.number]?.facts || []).filter((f) => typeof f === 'string' && f.trim().length > 0),
+                    is_approved: akAnswers[question.number]?.isApproved !== false,
                 })),
                 students: students
                     .filter((student) => student.selected)
@@ -1384,6 +1460,12 @@ function CreateExam() {
                                 onUpdate={updateAnswer}
                                 onMarkReviewed={markReviewed}
                                 onSave={saveAnswer}
+                                onGenerateFacts={generateFactsForCurrentQuestion}
+                                isGeneratingFacts={isGeneratingFacts}
+                                onAddFact={addFactForCurrentQuestion}
+                                onUpdateFact={updateFactForCurrentQuestion}
+                                onDeleteFact={deleteFactForCurrentQuestion}
+                                onToggleApprove={toggleApproveFactsForCurrentQuestion}
                             />
                         )}
                     </div>
@@ -1913,7 +1995,22 @@ function CompletionItem({ label, value, complete }) {
     )
 }
 
-function AnswerKeyEditor({ question, answer, onUpdate, onMarkReviewed, onSave }) {
+function AnswerKeyEditor({
+    question,
+    answer,
+    onUpdate,
+    onMarkReviewed,
+    onSave,
+    onGenerateFacts,
+    isGeneratingFacts,
+    onAddFact,
+    onUpdateFact,
+    onDeleteFact,
+    onToggleApprove,
+}) {
+    const facts = answer.facts || []
+    const isApproved = answer.isApproved !== false
+
     return (
         <>
             <div className="ce-editor-panel-header">
@@ -1925,13 +2022,107 @@ function AnswerKeyEditor({ question, answer, onUpdate, onMarkReviewed, onSave })
             </div>
 
             <div className="ce-editor-section">
-                <label>Reference Answer (Required for Phase 1 ASAG Evaluation) *</label>
+                <label>Reference Answer (Authoritative Ground Truth) *</label>
                 <textarea
                     rows="5"
                     value={answer.reference}
                     onChange={(e) => onUpdate('reference', e.target.value)}
-                    placeholder="Enter the expected reference answer..."
+                    placeholder="Enter the complete expected reference answer..."
                 />
+            </div>
+
+            {/* Candidate Reference Facts Section */}
+            <div className="ce-editor-section" style={{ marginTop: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+                    <div>
+                        <label style={{ fontWeight: 700, color: 'var(--g900)', fontSize: 14 }}>
+                            Candidate Reference Facts ({facts.length})
+                        </label>
+                        <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--g500)' }}>
+                            Decomposed atomic propositions verified by ASAG during student evaluation.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        className="ce-btn ce-btn-outline ce-btn-sm"
+                        onClick={onGenerateFacts}
+                        disabled={isGeneratingFacts || !answer.reference?.trim()}
+                    >
+                        <Icon name="ai" size={14} />
+                        {isGeneratingFacts ? 'Generating Facts...' : facts.length > 0 ? 'Regenerate Facts' : 'Generate Facts with AI'}
+                    </button>
+                </div>
+
+                {facts.length === 0 ? (
+                    <div style={{ padding: 16, background: 'var(--g50)', borderRadius: 8, border: '1px dashed var(--g300)', textAlign: 'center', color: 'var(--g600)', fontSize: 13 }}>
+                        No reference facts generated yet. Enter your reference answer above and click <strong>"Generate Facts with AI"</strong> or add them manually.
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {facts.map((factText, idx) => (
+                            <div
+                                key={idx}
+                                style={{
+                                    display: 'flex',
+                                    gap: 10,
+                                    alignItems: 'center',
+                                    background: '#fff',
+                                    padding: '8px 12px',
+                                    borderRadius: 8,
+                                    border: '1px solid var(--brd)',
+                                }}
+                            >
+                                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy)', minWidth: 55 }}>
+                                    Fact {idx + 1}:
+                                </span>
+                                <input
+                                    type="text"
+                                    value={factText}
+                                    onChange={(e) => onUpdateFact(idx, e.target.value)}
+                                    placeholder={`Reference fact ${idx + 1}...`}
+                                    style={{
+                                        flex: 1,
+                                        padding: '8px 10px',
+                                        fontSize: 13,
+                                        border: '1px solid var(--g300)',
+                                        borderRadius: 6,
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => onDeleteFact(idx)}
+                                    className="ce-btn-icon"
+                                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 6 }}
+                                    title="Delete fact"
+                                >
+                                    <Icon name="trash" size={16} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, flexWrap: 'wrap', gap: 10 }}>
+                    <button
+                        type="button"
+                        className="ce-btn ce-btn-ghost ce-btn-sm"
+                        onClick={onAddFact}
+                        style={{ fontSize: 13 }}
+                    >
+                        <Icon name="plus" size={14} />
+                        Add Missing Fact
+                    </button>
+                    {facts.length > 0 && (
+                        <button
+                            type="button"
+                            className={`ce-btn ce-btn-sm ${isApproved ? 'ce-btn-success' : 'ce-btn-outline'}`}
+                            onClick={onToggleApprove}
+                        >
+                            <Icon name="check" size={14} />
+                            {isApproved ? '✓ Facts Approved & Authoritative' : 'Approve Reference Facts'}
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div

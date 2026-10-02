@@ -2017,6 +2017,69 @@ function Results() {
                                         </div>
                                     </div>
 
+                                    {Array.isArray(ev.fact_results) && ev.fact_results.length > 0 && (
+                                        <div className="fact-evaluation-breakdown" style={{ marginTop: 18, marginBottom: 18, background: '#fff', border: '1px solid var(--brd)', borderRadius: 8, padding: 16 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                                                <h5 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--g900)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                    <Icon name="ai" size={15} />
+                                                    Candidate Reference Facts Evaluation Breakdown ({ev.fact_results.length} facts)
+                                                </h5>
+                                                <div style={{ display: 'flex', gap: 8, fontSize: 12 }}>
+                                                    <span className="badge badge-completed">Supported: {ev.supported || 0}</span>
+                                                    <span className="badge badge-modified">Uncertain: {ev.uncertain || 0}</span>
+                                                    {(ev.contradicted || 0) > 0 && <span className="badge badge-cancelled">Contradicted: {ev.contradicted}</span>}
+                                                    {(ev.missing || 0) > 0 && <span className="badge badge-pending">Missing: {ev.missing}</span>}
+                                                </div>
+                                            </div>
+
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                                {ev.fact_results.map((fr, fIdx) => {
+                                                    const labelCls = fr.label === 'supported' ? 'badge-completed' : (fr.label === 'contradicted' ? 'badge-cancelled' : (fr.label === 'uncertain' ? 'badge-modified' : 'badge-pending'))
+                                                    const simVal = (typeof fr.similarity === 'number' ? fr.similarity : 0).toFixed(2)
+                                                    const entPct = Math.round((fr.probabilities?.entailment || 0) * 100)
+                                                    const neuPct = Math.round((fr.probabilities?.neutral || 0) * 100)
+                                                    const conPct = Math.round((fr.probabilities?.contradiction || 0) * 100)
+
+                                                    return (
+                                                        <div key={fIdx} style={{ background: 'var(--g50)', borderRadius: 6, padding: '10px 12px', border: '1px solid var(--g200)' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 6 }}>
+                                                                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)' }}>
+                                                                    Fact {fIdx + 1}: <span style={{ color: 'var(--g800)', fontWeight: 500 }}>{fr.fact}</span>
+                                                                </div>
+                                                                <span className={`badge ${labelCls}`} style={{ textTransform: 'capitalize', flexShrink: 0 }}>
+                                                                    {fr.label}
+                                                                </span>
+                                                            </div>
+
+                                                            {fr.matched_sentence && (
+                                                                <div style={{ fontSize: 12, color: 'var(--g600)', marginBottom: 6, paddingLeft: 8, borderLeft: '2px solid var(--blue)' }}>
+                                                                    <strong style={{ color: 'var(--g700)' }}>Matched Evidence: </strong>
+                                                                    <em>"{fr.matched_sentence}"</em>
+                                                                </div>
+                                                            )}
+
+                                                            <div style={{ display: 'flex', gap: 14, fontSize: 11, color: 'var(--g500)', flexWrap: 'wrap', marginTop: 4 }}>
+                                                                <span>SBERT Similarity: <strong>{simVal}</strong></span>
+                                                                <span>Entailment: <strong>{entPct}%</strong></span>
+                                                                <span>Neutral: <strong>{neuPct}%</strong></span>
+                                                                <span>Contradiction: <strong>{conPct}%</strong></span>
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+
+                                            <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed var(--g300)', fontSize: 12, color: 'var(--g600)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                                                <span>
+                                                    <strong>Scoring Formula:</strong> [0.60 × (Supported + 0.5×Uncertain) / Total Facts + 0.40 × Similarity] × Max Marks
+                                                </span>
+                                                <span style={{ fontWeight: 700, color: 'var(--navy)' }}>
+                                                    Awarded: {ev.aiScore} / {q.marks} marks
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div className="ai-feedback">
                                         <div className="ai-feedback-header">
                                             <Icon name="ai" size={14} />

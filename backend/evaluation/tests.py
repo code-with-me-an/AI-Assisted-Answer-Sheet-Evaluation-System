@@ -299,3 +299,119 @@ class AutoGradePhase1BackendTests(TestCase):
         self.assertFalse(update_res.data['is_draft'])
         self.assertEqual(len(update_res.data['students']), 1)
 
+    def test_candidate_facts_generation_endpoint(self):
+        res = self.client_a.post('/api/reference-answers/generate-facts/', {
+            'reference_answer': '1. Mitochondria are the powerhouse of the cell. 2. They produce ATP through cellular respiration.',
+        }, format='json')
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('facts', res.data)
+        self.assertGreaterEqual(len(res.data['facts']), 2)
+
+    def test_reference_facts_crud_and_approval(self):
+        # 1. Create an exam
+        exam_res = self.client_a.post('/api/exams/', {
+            'exam_name': 'Chemistry Exam',
+            'subject': 'Chemistry',
+            'exam_date': '2026-10-30',
+            'questions': [
+                {
+                    'question_number': 1,
+                    'question_text': 'Explain ionic bonding.',
+                    'max_marks': '10.00',
+                    'question_type': 'descriptive',
+                    'reference_answer': 'Ionic bonding involves the transfer of valence electrons between atoms. It forms positively and negatively charged ions.',
+                    'reference_facts': [
+                        'Ionic bonding involves electron transfer between atoms',
+                        'It forms positively and negatively charged ions',
+                    ],
+                }
+            ],
+            'students': [
+                {
+                    'full_name': 'Marie Curie',
+                    'roll_number': 'CHEM001',
+                    'email': 'marie@example.com',
+                }
+            ],
+        }, format='json')
+        self.assertEqual(exam_res.status_code, 201)
+        ref_id = exam_res.data['questions'][0]['reference_answer']['reference_id']
+
+        # 2. Get facts for reference answer
+        facts_res = self.client_a.get(f'/api/reference-answers/{ref_id}/facts/')
+        self.assertEqual(facts_res.status_code, 200)
+        self.assertEqual(len(facts_res.data['facts']), 2)
+        fact_1_id = facts_res.data['facts'][0]['fact_id']
+
+        # 3. Add a new fact manually
+        add_fact_res = self.client_a.post(f'/api/reference-answers/{ref_id}/facts/', {
+            'fact_text': 'The resulting electrostatic attraction holds the lattice together',
+            'order_index': 2,
+        }, format='json')
+        self.assertEqual(add_fact_res.status_code, 201)
+        self.assertEqual(add_fact_res.data['fact_text'], 'The resulting electrostatic attraction holds the lattice together')
+
+        # 4. Edit a fact
+        edit_fact_res = self.client_a.patch(f'/api/reference-facts/{fact_1_id}/', {
+            'fact_text': 'Ionic bonding involves the complete transfer of valence electrons',
+        }, format='json')
+        self.assertEqual(edit_fact_res.status_code, 200)
+        self.assertEqual(edit_fact_res.data['fact_text'], 'Ionic bonding involves the complete transfer of valence electrons')
+
+        # 5. Approve facts
+        approve_res = self.client_a.post(f'/api/reference-answers/{ref_id}/approve-facts/', {
+            'facts': [
+                'Ionic bonding involves the complete transfer of valence electrons',
+                'It forms positively and negatively charged ions',
+            ]
+        }, format='json')
+        self.assertEqual(approve_res.status_code, 200)
+        self.assertTrue(approve_res.data['is_approved'])
+        self.assertEqual(len(approve_res.data['facts']), 2)
+
+    def test_asag_evaluation_scenarios(self):
+        ref_answer = "Water expands when it freezes due to the hexagonal crystal structure of ice."
+        approved_facts = [
+            "Water expands when it freezes",
+            "Expansion occurs due to the hexagonal crystal structure of ice",
+        ]
+
+        # 1. Paraphrased / Supported Answer
+        eval_paraphrased = evaluate_answer(
+            reference_answer=ref_answer,
+            student_answer="When water freezes it increases in volume because ice molecules form a hexagonal crystal lattice.",
+            reference_facts=approved_facts,
+            max_marks=10.0,
+        )
+        self.assertGreaterEqual(eval_paraphrased['awarded_marks'], 7.0)
+        self.assertGreaterEqual(eval_paraphrased['supported'], 1)
+
+        # 2. Contradicted Answer
+        eval_contradicted = evaluate_answer(
+            reference_answer=ref_answer,
+            student_answer="Water contracts when it freezes and does not expand.",
+            reference_facts=approved_facts,
+            max_marks=10.0,
+        )
+        self.assertGreaterEqual(eval_contradicted['contradicted'], 1)
+        self.assertLess(eval_contradicted['awarded_marks'], 5.0)
+
+        # 3. Empty / Blank Answer
+        eval_empty = evaluate_answer(
+            reference_answer=ref_answer,
+            student_answer="",
+            reference_facts=approved_facts,
+            max_marks=10.0,
+        )
+        self.assertEqual(eval_empty['awarded_marks'], 0.0)
+        self.assertIn('No answer provided', eval_empty['feedback'])
+
+        # 4. Completely Irrelevant Answer
+        eval_irrelevant = evaluate_answer(
+            reference_answer=ref_answer,
+            student_answer="The French Revolution began in 1789 with the storming of the Bastille.",
+            reference_facts=approved_facts,
+            max_marks=10.0,
+        )
+        self.assertLessEqual(eval_irrelevant['awarded_marks'], 2.0)
+

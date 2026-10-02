@@ -11,13 +11,14 @@ from rest_framework.views import APIView
 
 from ..models import (
     Evaluation, Examination, ExamStudent, Question,
-    ReferenceAnswer, Result, Student, StudentAnswer, Teacher,
+    ReferenceAnswer, ReferenceFact, Result, Student, StudentAnswer, Teacher,
 )
-from ..services.asag_evaluator import evaluate_answer
+from ..services.asag import evaluate_answer, generate_candidate_facts
 from .serializers import (
     EvaluationCreateSerializer, EvaluationRequestSerializer, EvaluationReviewSerializer,
     EvaluationSerializer, ExaminationListSerializer, ExaminationUpdateSerializer,
-    ExaminationWriteSerializer, ReferenceAnswerSerializer, ResultSerializer,
+    ExaminationWriteSerializer, GenerateFactsRequestSerializer,
+    ReferenceAnswerSerializer, ReferenceFactSerializer, ResultSerializer,
     StudentSerializer, TeacherProfileSerializer,
 )
 
@@ -53,6 +54,126 @@ class TeacherRequiredAPIView(APIView):
             raise NotFound('Exam not found.')
 
 
+class GenerateCandidateFactsView(TeacherRequiredAPIView):
+    """Generate candidate atomic reference facts from a reference answer text."""
+
+    def post(self, request):
+        serializer = GenerateFactsRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        ref_text = serializer.validated_data['reference_answer']
+        facts = generate_candidate_facts(ref_text)
+        return Response({'facts': facts})
+
+
+class ReferenceAnswerFactsView(TeacherRequiredAPIView):
+    """List or add reference facts for a question's reference answer."""
+
+    def get_reference(self, reference_id):
+        ref = ReferenceAnswer.objects.filter(
+            reference_id=reference_id,
+            question__examination__teacher=self.teacher(),
+        ).first()
+        if not ref:
+            raise NotFound('Reference answer not found.')
+        return ref
+
+    def get(self, request, reference_id):
+        ref = self.get_reference(reference_id)
+        facts = ref.facts.all().order_by('order_index', 'fact_id')
+        return Response({
+            'reference_id': ref.reference_id,
+            'is_approved': ref.is_approved,
+            'facts': ReferenceFactSerializer(facts, many=True).data,
+        })
+
+    def post(self, request, reference_id):
+        ref = self.get_reference(reference_id)
+        fact_text = request.data.get('fact_text', '').strip()
+        if not fact_text:
+            return Response({'fact_text': ['Fact text is required.']}, status=status.HTTP_400_BAD_REQUEST)
+        order_index = int(request.data.get('order_index', ref.facts.count()))
+        is_approved = bool(request.data.get('is_approved', True))
+        fact = ReferenceFact.objects.create(
+            reference_answer=ref,
+            fact_text=fact_text,
+            order_index=order_index,
+            is_approved=is_approved,
+        )
+        return Response(ReferenceFactSerializer(fact).data, status=status.HTTP_201_CREATED)
+
+
+class ReferenceFactDetailView(TeacherRequiredAPIView):
+    """Edit or delete an individual reference fact."""
+
+    def get_fact(self, fact_id):
+        fact = ReferenceFact.objects.filter(
+            fact_id=fact_id,
+            reference_answer__question__examination__teacher=self.teacher(),
+        ).first()
+        if not fact:
+            raise NotFound('Reference fact not found.')
+        return fact
+
+    def patch(self, request, fact_id):
+        fact = self.get_fact(fact_id)
+        if 'fact_text' in request.data:
+            text = request.data['fact_text'].strip()
+            if not text:
+                return Response({'fact_text': ['Fact text cannot be empty.']}, status=status.HTTP_400_BAD_REQUEST)
+            fact.fact_text = text
+        if 'order_index' in request.data:
+            fact.order_index = int(request.data['order_index'])
+        if 'is_approved' in request.data:
+            fact.is_approved = bool(request.data['is_approved'])
+        fact.save()
+        return Response(ReferenceFactSerializer(fact).data)
+
+    def delete(self, request, fact_id):
+        fact = self.get_fact(fact_id)
+        fact.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ReferenceAnswerApproveFactsView(TeacherRequiredAPIView):
+    """Approve and optionally synchronize all reference facts for a reference answer."""
+
+    @transaction.atomic
+    def post(self, request, reference_id):
+        ref = ReferenceAnswer.objects.filter(
+            reference_id=reference_id,
+            question__examination__teacher=self.teacher(),
+        ).first()
+        if not ref:
+            raise NotFound('Reference answer not found.')
+
+        facts_payload = request.data.get('facts')
+        if facts_payload is not None and isinstance(facts_payload, list):
+            ref.facts.all().delete()
+            for idx, item in enumerate(facts_payload):
+                text = item.get('fact_text') if isinstance(item, dict) else str(item)
+                text = text.strip() if text else ''
+                if text:
+                    ReferenceFact.objects.create(
+                        reference_answer=ref,
+                        fact_text=text,
+                        order_index=idx,
+                        is_approved=True,
+                    )
+        else:
+            ref.facts.all().update(is_approved=True)
+
+        ref.is_approved = True
+        ref.save(update_fields=['is_approved'])
+
+        facts = ref.facts.all().order_by('order_index', 'fact_id')
+        return Response({
+            'message': 'Reference facts approved successfully.',
+            'reference_id': ref.reference_id,
+            'is_approved': True,
+            'facts': ReferenceFactSerializer(facts, many=True).data,
+        })
+
+
 class EvaluationView(TeacherRequiredAPIView):
     """Payload validation endpoint for ASAG evaluate request."""
 
@@ -60,10 +181,12 @@ class EvaluationView(TeacherRequiredAPIView):
         serializer = EvaluationRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        ref_text = " ".join(data['reference_answers'])
+        ref_text = " ".join(data.get('reference_answers', []))
+        ref_facts = data.get('reference_facts', [])
         eval_result = evaluate_answer(
             reference_answer=ref_text,
             student_answer=data['student_answer'],
+            reference_facts=ref_facts if ref_facts else None,
             max_marks=float(data['max_marks']),
         )
         return Response({'message': 'Evaluation completed successfully.', 'data': eval_result})
@@ -292,13 +415,27 @@ class ExaminationListCreateView(TeacherRequiredAPIView):
                 max_marks=question_data['max_marks'],
                 question_type=question_data.get('question_type', 'descriptive'),
             )
-            answer_text = question_data.get('reference_answer', '')
+            answer_text = question_data.get('reference_answer', '').strip()
             if answer_text:
-                ReferenceAnswer.objects.create(
+                ref_ans = ReferenceAnswer.objects.create(
                     question=question,
                     reference_number=1,
                     answer_text=answer_text,
+                    is_approved=question_data.get('is_approved', True),
                 )
+                facts_list = question_data.get('reference_facts', [])
+                if not facts_list:
+                    facts_list = generate_candidate_facts(answer_text)
+
+                for idx, fact_item in enumerate(facts_list):
+                    fact_str = fact_item.strip() if isinstance(fact_item, str) else str(fact_item).strip()
+                    if fact_str:
+                        ReferenceFact.objects.create(
+                            reference_answer=ref_ans,
+                            fact_text=fact_str,
+                            order_index=idx,
+                            is_approved=True,
+                        )
 
         for student_data in data.get('students', []):
             roll = student_data.get('roll_number', '').strip()
@@ -321,7 +458,7 @@ class ExaminationListCreateView(TeacherRequiredAPIView):
         total_marks = Decimal('0.00')
 
         questions = list(
-            exam.questions.prefetch_related('reference_answers', 'evaluations')
+            exam.questions.prefetch_related('reference_answers__facts', 'evaluations')
             .order_by('question_number')
         )
 
@@ -649,20 +786,26 @@ class ExamEvaluationView(TeacherRequiredAPIView):
             defaults={'answer_text': data['student_answer']},
         )
 
-        # Reference answer text
-        ref_obj = question.reference_answers.first()
+        # Retrieve reference answer & approved reference facts
+        ref_obj = question.reference_answers.prefetch_related('facts').first()
         ref_text = ref_obj.answer_text if ref_obj else ""
+        approved_facts = []
+        if ref_obj:
+            approved_facts = [
+                f.fact_text for f in ref_obj.facts.filter(is_approved=True).order_by('order_index', 'fact_id')
+            ]
 
         # Invoke ASAG Evaluator Service
         eval_output = evaluate_answer(
             reference_answer=ref_text,
             student_answer=data['student_answer'],
+            reference_facts=approved_facts if approved_facts else None,
             max_marks=float(question.max_marks),
         )
 
         pct_val = int(eval_output['percentage'])
         verif = "correct" if pct_val >= 80 else ("partial" if pct_val >= 40 else "incorrect")
-        status_label = "supported" if pct_val >= 80 else ("partially_supported" if pct_val >= 40 else ("contradicted" if eval_output['contradicted'] > 0 else "missing"))
+        status_label = "supported" if pct_val >= 80 else ("partially_supported" if pct_val >= 40 else ("contradicted" if eval_output.get('contradicted', 0) > 0 else "missing"))
 
         matched_facts = [f['fact'] for f in eval_output.get('fact_results', []) if f['label'] == 'supported']
         missing_facts = [f['fact'] for f in eval_output.get('fact_results', []) if f['label'] in ('missing', 'contradicted')]
@@ -680,6 +823,7 @@ class ExamEvaluationView(TeacherRequiredAPIView):
                 'htr': 95,
             },
             'evaluation_details': eval_output,
+            'fact_results': eval_output.get('fact_results', []),
             'reason': '',
         }
 
@@ -700,8 +844,11 @@ class ExamEvaluationView(TeacherRequiredAPIView):
 
     @staticmethod
     def _eval_representation(evaluation, question):
-        ref = question.reference_answers.first()
+        ref = question.reference_answers.prefetch_related('facts').first()
         analysis = evaluation.analysis or {}
+        eval_details = analysis.get('evaluation_details') or {}
+        fact_results = eval_details.get('fact_results') or analysis.get('fact_results', [])
+
         components = analysis.get('components', {
             'semantic': float(evaluation.semantic_similarity or 0),
             'coverage': int((float(evaluation.awarded_marks) / float(question.max_marks or 1)) * 100),
@@ -710,7 +857,6 @@ class ExamEvaluationView(TeacherRequiredAPIView):
             'htr': 95,
         })
         verif = analysis.get('verification', 'correct' if float(evaluation.awarded_marks) >= float(question.max_marks) * 0.8 else 'partial')
-
         student_ans_text = evaluation.student_answer.answer_text if evaluation.student_answer else ''
 
         return {
@@ -720,11 +866,19 @@ class ExamEvaluationView(TeacherRequiredAPIView):
             'question_text': question.question_text,
             'studentAnswer': student_ans_text,
             'referenceAnswer': ref.answer_text if ref else '',
+            'reference_facts': [f.fact_text for f in ref.facts.all()] if ref else [],
             'aiScore': float(evaluation.awarded_marks),
             'finalScore': float(evaluation.awarded_marks),
             'verification': verif,
             'components': components,
             'analysis': analysis,
+            'fact_results': fact_results,
+            'nli': eval_details.get('nli', analysis.get('nli', {'entailment': 0.0, 'neutral': 1.0, 'contradiction': 0.0})),
+            'supported': eval_details.get('supported', analysis.get('supported', 0)),
+            'contradicted': eval_details.get('contradicted', analysis.get('contradicted', 0)),
+            'missing': eval_details.get('missing', analysis.get('missing', 0)),
+            'uncertain': eval_details.get('uncertain', analysis.get('uncertain', 0)),
+            'total_facts': eval_details.get('total_facts', len(fact_results)),
             'matched_key_concepts': analysis.get('matched_key_concepts', []),
             'missing_key_concepts': analysis.get('missing_key_concepts', []),
             'confidence': analysis.get('confidence', float(evaluation.semantic_similarity or 0)),
@@ -743,7 +897,7 @@ class ExamStudentEvaluationsView(TeacherRequiredAPIView):
         if not assignment:
             raise NotFound('Student not assigned to this exam.')
 
-        questions = list(exam.questions.prefetch_related('reference_answers').order_by('question_number'))
+        questions = list(exam.questions.prefetch_related('reference_answers__facts').order_by('question_number'))
 
         # Fetch evaluations via StudentAnswer
         eval_records = Evaluation.objects.filter(
@@ -757,7 +911,7 @@ class ExamStudentEvaluationsView(TeacherRequiredAPIView):
             if ev:
                 evaluations_list.append(ExamEvaluationView._eval_representation(ev, question))
             else:
-                ref = question.reference_answers.first()
+                ref = question.reference_answers.prefetch_related('facts').first()
                 evaluations_list.append({
                     'evaluation_id': None,
                     'qNumber': question.question_number,
@@ -765,6 +919,7 @@ class ExamStudentEvaluationsView(TeacherRequiredAPIView):
                     'question_text': question.question_text,
                     'studentAnswer': '',
                     'referenceAnswer': ref.answer_text if ref else '',
+                    'reference_facts': [f.fact_text for f in ref.facts.all()] if ref else [],
                     'aiScore': 0.0,
                     'finalScore': 0.0,
                     'verification': 'incorrect',
@@ -775,6 +930,7 @@ class ExamStudentEvaluationsView(TeacherRequiredAPIView):
                         'completeness': 0,
                         'htr': 0,
                     },
+                    'fact_results': [],
                     'feedback': 'Not evaluated yet.',
                     'reviewed': False,
                     'reason': '',

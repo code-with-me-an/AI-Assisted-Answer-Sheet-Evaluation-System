@@ -1,14 +1,18 @@
 from decimal import Decimal
 from rest_framework import serializers
 
-from ..models import Evaluation, Examination, Question, ReferenceAnswer, Result, Student, StudentAnswer
+from ..models import (
+    Evaluation, Examination, Question, ReferenceAnswer,
+    ReferenceFact, Result, Student, StudentAnswer,
+)
 
 
 class EvaluationRequestSerializer(serializers.Serializer):
-    question = serializers.CharField()
-    reference_answers = serializers.ListField(child=serializers.CharField(), min_length=1)
-    student_answer = serializers.CharField()
-    max_marks = serializers.DecimalField(max_digits=5, decimal_places=2, min_value=Decimal('0.00'))
+    question = serializers.CharField(required=False, allow_blank=True, default='')
+    reference_answers = serializers.ListField(child=serializers.CharField(), required=False, default=list)
+    reference_facts = serializers.ListField(child=serializers.CharField(), required=False, default=list)
+    student_answer = serializers.CharField(allow_blank=True, default='')
+    max_marks = serializers.DecimalField(max_digits=5, decimal_places=2, min_value=Decimal('0.00'), default=Decimal('10.00'))
 
 
 class TeacherProfileSerializer(serializers.Serializer):
@@ -21,10 +25,32 @@ class StudentInputSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False, allow_blank=True)
 
 
+class ReferenceFactSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReferenceFact
+        fields = ['fact_id', 'fact_text', 'order_index', 'is_approved', 'created_at', 'updated_at']
+
+
 class ReferenceAnswerSerializer(serializers.ModelSerializer):
+    facts = ReferenceFactSerializer(many=True, read_only=True)
+
     class Meta:
         model = ReferenceAnswer
-        fields = ['reference_id', 'reference_number', 'answer_text', 'marking_scheme', 'created_at']
+        fields = [
+            'reference_id', 'reference_number', 'answer_text', 'marking_scheme',
+            'is_approved', 'facts', 'created_at',
+        ]
+
+
+class GenerateFactsRequestSerializer(serializers.Serializer):
+    reference_answer = serializers.CharField(allow_blank=False)
+
+
+class FactItemInputSerializer(serializers.Serializer):
+    fact_id = serializers.IntegerField(required=False, allow_null=True)
+    fact_text = serializers.CharField(allow_blank=False)
+    order_index = serializers.IntegerField(required=False, default=0)
+    is_approved = serializers.BooleanField(required=False, default=True)
 
 
 class QuestionSerializer(serializers.Serializer):
@@ -34,6 +60,8 @@ class QuestionSerializer(serializers.Serializer):
     max_marks = serializers.DecimalField(max_digits=5, decimal_places=2, min_value=Decimal('0.01'))
     question_type = serializers.ChoiceField(choices=['descriptive', 'mcq', 'short', 'truefalse'], default='descriptive')
     reference_answer = serializers.CharField(required=False, allow_blank=True)
+    reference_facts = serializers.ListField(child=serializers.CharField(), required=False, default=list)
+    is_approved = serializers.BooleanField(required=False, default=True)
     key_concepts = serializers.ListField(child=serializers.CharField(max_length=255), required=False, default=list)
 
 

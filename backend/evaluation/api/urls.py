@@ -3,7 +3,10 @@ from django.urls import path
 from .views import (
     DashboardView, EvaluationReviewView, EvaluationView, ExamEvaluationView,
     ExamStudentEvaluationsView, ExamStudentFinalizeView, ExaminationDetailView,
-    ExaminationListCreateView, StudentDetailView, StudentListView, TeacherProfileView,
+    ExaminationListCreateView, GenerateCandidateFactsView,
+    ReferenceAnswerApproveFactsView, ReferenceAnswerFactsView,
+    ReferenceFactDetailView, StudentDetailView, StudentListView,
+    TeacherProfileView,
 )
 
 
@@ -15,6 +18,10 @@ urlpatterns = [
     path('exams/<int:examination_id>/evaluate/', ExamEvaluationView.as_view(), name='exam-evaluate'),
     path('exams/<int:examination_id>/students/<int:student_id>/evaluations/', ExamStudentEvaluationsView.as_view(), name='exam-student-evaluations'),
     path('exams/<int:examination_id>/students/<int:student_id>/finalize/', ExamStudentFinalizeView.as_view(), name='exam-student-finalize'),
+    path('reference-answers/generate-facts/', GenerateCandidateFactsView.as_view(), name='generate-facts'),
+    path('reference-answers/<int:reference_id>/facts/', ReferenceAnswerFactsView.as_view(), name='reference-facts'),
+    path('reference-answers/<int:reference_id>/approve-facts/', ReferenceAnswerApproveFactsView.as_view(), name='reference-approve-facts'),
+    path('reference-facts/<int:fact_id>/', ReferenceFactDetailView.as_view(), name='reference-fact-detail'),
     path('students/', StudentListView.as_view(), name='student-list'),
     path('students/<int:student_id>/', StudentDetailView.as_view(), name='student-detail'),
     path('evaluations/<int:evaluation_id>/', EvaluationReviewView.as_view(), name='evaluation-review'),

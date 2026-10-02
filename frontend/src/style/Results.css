@@ -395,6 +395,13 @@
     color: #c2410c;
 }
 
+.results-page .badge-cancelled,
+.results-page .badge-danger,
+.results-page .badge-contradicted {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
 /* Buttons */
 .results-page .btn {
     display: inline-flex;

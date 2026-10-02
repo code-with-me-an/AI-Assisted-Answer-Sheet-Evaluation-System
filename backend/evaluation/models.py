@@ -55,10 +55,31 @@ class ReferenceAnswer(models.Model):
     reference_number = models.IntegerField(default=1)
     answer_text = models.TextField()
     marking_scheme = models.TextField(blank=True, null=True)
+    is_approved = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Reference {self.reference_number} - Q{self.question.question_number}"
+
+
+class ReferenceFact(models.Model):
+    fact_id = models.BigAutoField(primary_key=True)
+    reference_answer = models.ForeignKey(
+        ReferenceAnswer,
+        on_delete=models.CASCADE,
+        related_name="facts",
+    )
+    fact_text = models.TextField()
+    order_index = models.IntegerField(default=0)
+    is_approved = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order_index', 'fact_id']
+
+    def __str__(self):
+        return f"Fact #{self.fact_id} (Ref {self.reference_answer_id}): {self.fact_text[:40]}"
 
 
 class Student(models.Model):

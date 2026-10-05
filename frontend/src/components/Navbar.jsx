@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from '../lib/router'
 import { api } from '../lib/api'
-import { supabase } from '../lib/supabase'
+import { auth } from '../lib/auth'
 import '../style/Navbar.css'
 import icon from '../assets/Icon.svg'
 
@@ -178,7 +178,7 @@ function Navbar({ onNavigate }) {
     }
 
     const handleLogout = async () => {
-        const { error } = await supabase.auth.signOut()
+        const { error } = await auth.signOut()
         if (error) {
             console.error('Logout error:', error)
         }

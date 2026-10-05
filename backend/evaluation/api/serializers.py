@@ -15,6 +15,21 @@ class EvaluationRequestSerializer(serializers.Serializer):
     max_marks = serializers.DecimalField(max_digits=5, decimal_places=2, min_value=Decimal('0.00'), default=Decimal('10.00'))
 
 
+class SignupSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, min_length=6)
+    name = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')
+
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    password = serializers.CharField(write_only=True, min_length=6)
+
+
 class TeacherProfileSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=100, required=False, allow_blank=False)
 

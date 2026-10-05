@@ -1,9 +1,9 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import date
 from decimal import Decimal
-from uuid import uuid4
 
-import jwt
-from django.test import TestCase, override_settings
+from django.contrib.auth.models import User
+from django.test import TestCase
+from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
 from .models import (
@@ -13,34 +13,100 @@ from .models import (
 from .services.asag_evaluator import evaluate_answer
 
 
-@override_settings(
-    SUPABASE_JWT_ISSUER='https://example.supabase.co/auth/v1',
-    SUPABASE_JWT_AUDIENCE='authenticated',
-    SUPABASE_JWT_SECRET='test-only-jwt-secret-with-at-least-32-bytes',
-)
 class AutoGradePhase1BackendTests(TestCase):
     def setUp(self):
         self.client_a = APIClient()
         self.client_b = APIClient()
-        self.user_a_id = uuid4()
-        self.user_b_id = uuid4()
 
-        self.token_a = self._make_token(self.user_a_id, 'teacher_a@example.com', 'Prof. Alice')
-        self.token_b = self._make_token(self.user_b_id, 'teacher_b@example.com', 'Prof. Bob')
+        self.user_a = User.objects.create_user(
+            username='teacher_a@example.com',
+            email='teacher_a@example.com',
+            password='TestPassword123!',
+            first_name='Prof. Alice',
+        )
+        self.teacher_a = Teacher.objects.create(
+            user=self.user_a,
+            name='Prof. Alice',
+            email='teacher_a@example.com',
+        )
+        self.token_a = Token.objects.create(user=self.user_a).key
+
+        self.user_b = User.objects.create_user(
+            username='teacher_b@example.com',
+            email='teacher_b@example.com',
+            password='TestPassword123!',
+            first_name='Prof. Bob',
+        )
+        self.teacher_b = Teacher.objects.create(
+            user=self.user_b,
+            name='Prof. Bob',
+            email='teacher_b@example.com',
+        )
+        self.token_b = Token.objects.create(user=self.user_b).key
 
         self.client_a.credentials(HTTP_AUTHORIZATION=f'Bearer {self.token_a}')
         self.client_b.credentials(HTTP_AUTHORIZATION=f'Bearer {self.token_b}')
 
-    def _make_token(self, user_id, email, name):
-        claims = {
-            'sub': str(user_id),
-            'email': email,
-            'user_metadata': {'name': name},
-            'aud': 'authenticated',
-            'iss': 'https://example.supabase.co/auth/v1',
-            'exp': datetime.now(timezone.utc) + timedelta(minutes=15),
-        }
-        return jwt.encode(claims, 'test-only-jwt-secret-with-at-least-32-bytes', algorithm='HS256')
+    def test_signup_and_login_flow(self):
+        anon_client = APIClient()
+
+        # 1. Sign up a new teacher
+        signup_res = anon_client.post('/api/auth/signup/', {
+            'email': 'newteacher@autograde.local',
+            'password': 'StrongPassword123!',
+            'name': 'Dr. New Teacher',
+        }, format='json')
+        self.assertEqual(signup_res.status_code, 201)
+        self.assertIn('token', signup_res.data)
+        self.assertEqual(signup_res.data['user']['email'], 'newteacher@autograde.local')
+        self.assertEqual(signup_res.data['teacher']['name'], 'Dr. New Teacher')
+
+        # 2. Duplicate signup should fail
+        dup_res = anon_client.post('/api/auth/signup/', {
+            'email': 'newteacher@autograde.local',
+            'password': 'StrongPassword123!',
+            'name': 'Dr. New Teacher',
+        }, format='json')
+        self.assertEqual(dup_res.status_code, 400)
+
+        # 3. Log in with wrong password
+        wrong_login = anon_client.post('/api/auth/login/', {
+            'email': 'newteacher@autograde.local',
+            'password': 'WrongPassword!',
+        }, format='json')
+        self.assertEqual(wrong_login.status_code, 400)
+
+        # 4. Log in with correct credentials
+        login_res = anon_client.post('/api/auth/login/', {
+            'email': 'newteacher@autograde.local',
+            'password': 'StrongPassword123!',
+        }, format='json')
+        self.assertEqual(login_res.status_code, 200)
+        self.assertIn('token', login_res.data)
+
+        # 5. Access protected profile with new token
+        new_client = APIClient()
+        new_client.credentials(HTTP_AUTHORIZATION=f"Bearer {login_res.data['token']}")
+        profile_res = new_client.get('/api/auth/profile/')
+        self.assertEqual(profile_res.status_code, 200)
+        self.assertEqual(profile_res.data['name'], 'Dr. New Teacher')
+
+        # 6. Change password
+        pwd_res = new_client.post('/api/auth/change-password/', {
+            'password': 'NewPassword456!',
+        }, format='json')
+        self.assertEqual(pwd_res.status_code, 200)
+
+        # 7. Log in with new password
+        new_login = anon_client.post('/api/auth/login/', {
+            'email': 'newteacher@autograde.local',
+            'password': 'NewPassword456!',
+        }, format='json')
+        self.assertEqual(new_login.status_code, 200)
+
+        # 8. Log out
+        logout_res = new_client.post('/api/auth/logout/')
+        self.assertEqual(logout_res.status_code, 200)
 
     def test_asag_evaluator_service_direct(self):
         ref = "Polymorphism allows objects of different classes to respond to the same interface."
@@ -114,7 +180,7 @@ class AutoGradePhase1BackendTests(TestCase):
 
         # Verify DB records
         exam = Examination.objects.get(examination_id=exam_id)
-        self.assertEqual(exam.teacher.supabase_user_id, self.user_a_id)
+        self.assertEqual(exam.teacher.user, self.user_a)
         self.assertEqual(exam.questions.count(), 2)
         self.assertEqual(exam.assignments.count(), 2)
 
@@ -414,4 +480,3 @@ class AutoGradePhase1BackendTests(TestCase):
             max_marks=10.0,
         )
         self.assertLessEqual(eval_irrelevant['awarded_marks'], 2.0)
-

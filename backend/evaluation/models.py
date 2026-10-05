@@ -1,11 +1,18 @@
+from django.conf import settings
 from django.db import models
 
 
 class Teacher(models.Model):
     teacher_id = models.BigAutoField(primary_key=True)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="teacher",
+        null=True,
+        blank=True,
+    )
     name = models.CharField(max_length=100)
     email = models.EmailField(max_length=150, unique=True)
-    supabase_user_id = models.UUIDField(unique=True, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

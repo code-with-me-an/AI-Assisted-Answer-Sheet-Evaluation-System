@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { auth } from './auth'
 
 const apiBaseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
 
@@ -12,15 +12,15 @@ export class ApiError extends Error {
 }
 
 async function request(path, options = {}) {
-    const { data, error } = await supabase.auth.getSession()
-    if (error || !data.session?.access_token) {
+    const token = auth.getToken()
+    if (!token) {
         throw new ApiError('Your session has expired. Please sign in again.', 401)
     }
 
     const response = await fetch(`${apiBaseUrl}${path}`, {
         ...options,
         headers: {
-            Authorization: `Bearer ${data.session.access_token}`,
+            Authorization: `Bearer ${token}`,
             ...(options.body ? { 'Content-Type': 'application/json' } : {}),
             ...options.headers,
         },

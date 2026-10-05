@@ -1,16 +1,20 @@
 from django.urls import path
 
 from .views import (
-    DashboardView, EvaluationReviewView, EvaluationView, ExamEvaluationView,
-    ExamStudentEvaluationsView, ExamStudentFinalizeView, ExaminationDetailView,
-    ExaminationListCreateView, GenerateCandidateFactsView,
-    ReferenceAnswerApproveFactsView, ReferenceAnswerFactsView,
-    ReferenceFactDetailView, StudentDetailView, StudentListView,
+    ChangePasswordView, DashboardView, EvaluationReviewView, EvaluationView,
+    ExamEvaluationView, ExamStudentEvaluationsView, ExamStudentFinalizeView,
+    ExaminationDetailView, ExaminationListCreateView, GenerateCandidateFactsView,
+    LoginView, LogoutView, ReferenceAnswerApproveFactsView, ReferenceAnswerFactsView,
+    ReferenceFactDetailView, SignupView, StudentDetailView, StudentListView,
     TeacherProfileView,
 )
 
 
 urlpatterns = [
+    path('auth/signup/', SignupView.as_view(), name='auth-signup'),
+    path('auth/login/', LoginView.as_view(), name='auth-login'),
+    path('auth/logout/', LogoutView.as_view(), name='auth-logout'),
+    path('auth/change-password/', ChangePasswordView.as_view(), name='auth-change-password'),
     path('auth/profile/', TeacherProfileView.as_view(), name='teacher-profile'),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
     path('exams/', ExaminationListCreateView.as_view(), name='exam-list'),

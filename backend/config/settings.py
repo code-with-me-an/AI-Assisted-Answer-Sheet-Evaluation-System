@@ -29,15 +29,21 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-development-on
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', 'true').lower() == 'true'
 
-ALLOWED_HOSTS = [host for host in os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if host]
+ALLOWED_HOSTS = [host for host in os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,backend').split(',') if host]
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
     'django.contrib.staticfiles',
 
     'rest_framework',
+    'rest_framework.authtoken',
     'corsheaders',
     'evaluation',
 ]
@@ -45,8 +51,11 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -59,7 +68,10 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
             ],
         },
     },
@@ -79,10 +91,10 @@ if 'test' in sys.argv:
         }
     }
 else:
-    DATABASE_URL = os.environ.get('DATABASE_URL')
-    if not DATABASE_URL:
-        raise RuntimeError('DATABASE_URL must be set to the Supabase PostgreSQL connection URL.')
-
+    DATABASE_URL = os.environ.get(
+        'DATABASE_URL',
+        'postgresql://autograde:autograde_dev_password@db:5432/autograde'
+    )
     DATABASES = {
         'default': dj_database_url.parse(
             DATABASE_URL,
@@ -90,26 +102,29 @@ else:
             conn_health_checks=True,
         )
     }
-    # Supabase requires TLS for its hosted PostgreSQL service.  Set this explicitly
-    # so a URL without an sslmode query parameter remains safe.
-    if DATABASES['default']['ENGINE'] == 'django.db.backends.postgresql':
+    sslmode = os.environ.get('DATABASE_SSLMODE')
+    if sslmode and DATABASES['default']['ENGINE'] == 'django.db.backends.postgresql':
         DATABASES['default'].setdefault('OPTIONS', {})
-        DATABASES['default']['OPTIONS'].setdefault('sslmode', os.environ.get('DATABASE_SSLMODE', 'require'))
-
-SUPABASE_URL = os.environ.get('SUPABASE_URL', '').rstrip('/')
-SUPABASE_JWKS_URL = os.environ.get(
-    'SUPABASE_JWKS_URL',
-    '',
-) or (f'{SUPABASE_URL}/auth/v1/.well-known/jwks.json' if SUPABASE_URL else '')
-SUPABASE_JWT_ISSUER = os.environ.get('SUPABASE_JWT_ISSUER', '') or (
-    f'{SUPABASE_URL}/auth/v1' if SUPABASE_URL else ''
-)
-SUPABASE_JWT_AUDIENCE = os.environ.get('SUPABASE_JWT_AUDIENCE', 'authenticated')
-# Needed only by legacy Supabase projects that still issue HS256 tokens.
-SUPABASE_JWT_SECRET = os.environ.get('SUPABASE_JWT_SECRET', '')
+        DATABASES['default']['OPTIONS']['sslmode'] = sslmode
 
 
+# Password validation
+# https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
 
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
 
 
 # Internationalization
@@ -128,6 +143,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 
 # Email
@@ -163,6 +181,8 @@ CORS_ALLOW_HEADERS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'evaluation.authentication.SupabaseJWTAuthentication',
+        'evaluation.authentication.BearerTokenAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ],
 }

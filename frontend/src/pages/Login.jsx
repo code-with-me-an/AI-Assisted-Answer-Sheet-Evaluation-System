@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import icon from '../assets/Icon.svg'
 import '../style/Login.css'
-import { supabase } from '../lib/supabase'
+import { auth } from '../lib/auth'
 
 function EyeIcon() {
     return (
@@ -64,12 +64,12 @@ function Login({ onLogin }) {
             setLoading(true)
 
             const { data, error: loginError } = isSignup
-                ? await supabase.auth.signUp({
+                ? await auth.signUp({
                     email: email.trim(),
                     password,
-                    options: { data: { name: name.trim() } },
+                    name: name.trim(),
                 })
-                : await supabase.auth.signInWithPassword({
+                : await auth.signInWithPassword({
                     email: email.trim(),
                     password,
                 })
@@ -79,11 +79,8 @@ function Login({ onLogin }) {
                 return
             }
 
-            if (data?.session?.user) {
+            if (data?.session?.user || data?.user) {
                 onLogin(data.user)
-            } else if (data?.user) {
-                setNotice('Account created. Check your email to confirm your account, then sign in.')
-                setIsSignup(false)
             }
         } catch (err) {
             console.error('Login error:', err)

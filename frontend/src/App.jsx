@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Routes, Route, Navigate, useNavigate, useLocation } from './lib/router'
 
-import { supabase } from './lib/supabase'
+import { auth } from './lib/auth'
 import { syncTeacherProfile } from './lib/api'
 
 import Login from './pages/Login'
@@ -26,10 +26,10 @@ function App() {
         let mounted = true
 
         const checkSession = async () => {
-            const { data, error } = await supabase.auth.getSession()
+            const { data, error } = await auth.getSession()
 
             if (error) {
-                console.error('Error checking Supabase session:', error)
+                console.error('Error checking auth session:', error)
             }
 
             if (mounted) {
@@ -48,7 +48,7 @@ function App() {
 
         const {
             data: { subscription },
-        } = supabase.auth.onAuthStateChange(
+        } = auth.onAuthStateChange(
             (_event, session) => {
                 if (!mounted) {
                     return

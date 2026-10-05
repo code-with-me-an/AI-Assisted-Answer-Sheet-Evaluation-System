@@ -1,11 +1,13 @@
 from decimal import Decimal
 import statistics
 
+from django.contrib.auth.models import User
 from django.db import transaction
 from django.db.models import Count, Q, Sum
 from rest_framework import status
+from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import NotFound, PermissionDenied
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -15,11 +17,11 @@ from ..models import (
 )
 from ..services.asag import evaluate_answer, generate_candidate_facts
 from .serializers import (
-    EvaluationCreateSerializer, EvaluationRequestSerializer, EvaluationReviewSerializer,
-    EvaluationSerializer, ExaminationListSerializer, ExaminationUpdateSerializer,
-    ExaminationWriteSerializer, GenerateFactsRequestSerializer,
-    ReferenceAnswerSerializer, ReferenceFactSerializer, ResultSerializer,
-    StudentSerializer, TeacherProfileSerializer,
+    ChangePasswordSerializer, EvaluationCreateSerializer, EvaluationRequestSerializer,
+    EvaluationReviewSerializer, EvaluationSerializer, ExaminationListSerializer,
+    ExaminationUpdateSerializer, ExaminationWriteSerializer, GenerateFactsRequestSerializer,
+    LoginSerializer, ReferenceAnswerSerializer, ReferenceFactSerializer, ResultSerializer,
+    SignupSerializer, StudentSerializer, TeacherProfileSerializer,
 )
 
 
@@ -27,22 +29,17 @@ class TeacherRequiredAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def teacher(self):
-        if self.request.user.teacher is not None:
-            return self.request.user.teacher
-
-        # Auto-provision or link teacher if authenticated with Supabase user
-        user_id = self.request.user.supabase_user_id
-        email = self.request.user.email
-        if user_id and email:
-            name = (
-                self.request.user.claims.get('user_metadata', {}).get('name')
-                or email.split('@')[0]
-            )
+        user = self.request.user
+        teacher = getattr(user, 'teacher', None) or Teacher.objects.filter(user=user).first()
+        if teacher is None and user.email:
             teacher, _ = Teacher.objects.get_or_create(
-                supabase_user_id=user_id,
-                defaults={'email': email, 'name': name},
+                user=user,
+                defaults={
+                    'email': user.email,
+                    'name': user.first_name or user.email.split('@')[0],
+                },
             )
-            self.request.user.teacher = teacher
+        if teacher is not None:
             return teacher
 
         raise PermissionDenied('Create a teacher profile before using this endpoint.')
@@ -192,23 +189,111 @@ class EvaluationView(TeacherRequiredAPIView):
         return Response({'message': 'Evaluation completed successfully.', 'data': eval_result})
 
 
+class SignupView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = SignupSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email'].strip().lower()
+        password = serializer.validated_data['password']
+        name = serializer.validated_data.get('name', '').strip() or email.split('@')[0]
+
+        if User.objects.filter(username__iexact=email).exists() or User.objects.filter(email__iexact=email).exists():
+            return Response({'detail': 'An account with this email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            user = User.objects.create_user(username=email, email=email, password=password, first_name=name)
+            teacher, _ = Teacher.objects.get_or_create(user=user, defaults={'name': name, 'email': email})
+            token, _ = Token.objects.get_or_create(user=user)
+
+        return Response(
+            {
+                'token': token.key,
+                'user': {
+                    'id': user.id,
+                    'email': user.email,
+                    'name': teacher.name,
+                },
+                'teacher': {
+                    'teacher_id': teacher.teacher_id,
+                    'name': teacher.name,
+                    'email': teacher.email,
+                },
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class LoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email'].strip().lower()
+        password = serializer.validated_data['password']
+
+        user = User.objects.filter(email__iexact=email).first() or User.objects.filter(username__iexact=email).first()
+        if not user or not user.check_password(password):
+            return Response({'detail': 'Invalid email or password.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        token, _ = Token.objects.get_or_create(user=user)
+        teacher = getattr(user, 'teacher', None) or Teacher.objects.filter(user=user).first()
+        if not teacher:
+            teacher, _ = Teacher.objects.get_or_create(
+                user=user,
+                defaults={'email': user.email, 'name': user.first_name or user.email.split('@')[0]},
+            )
+
+        return Response(
+            {
+                'token': token.key,
+                'user': {
+                    'id': user.id,
+                    'email': user.email,
+                    'name': teacher.name,
+                },
+                'teacher': {
+                    'teacher_id': teacher.teacher_id,
+                    'name': teacher.name,
+                    'email': teacher.email,
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        Token.objects.filter(user=request.user).delete()
+        return Response({'detail': 'Successfully logged out.'}, status=status.HTTP_200_OK)
+
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ChangePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        request.user.set_password(serializer.validated_data['password'])
+        request.user.save()
+        return Response({'detail': 'Password updated successfully.'}, status=status.HTTP_200_OK)
+
+
 class TeacherProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        user_id = request.user.supabase_user_id
-        email = request.user.email
-        teacher = request.user.teacher or Teacher.objects.filter(supabase_user_id=user_id).first()
-        if teacher is None and user_id and email:
-            name = (
-                request.user.claims.get('user_metadata', {}).get('name')
-                or email.split('@')[0]
-            )
+        user = request.user
+        teacher = getattr(user, 'teacher', None) or Teacher.objects.filter(user=user).first()
+        if teacher is None and user.email:
             teacher, _ = Teacher.objects.get_or_create(
-                supabase_user_id=user_id,
-                defaults={'email': email, 'name': name},
+                user=user,
+                defaults={'email': user.email, 'name': user.first_name or user.email.split('@')[0]},
             )
-            request.user.teacher = teacher
 
         if teacher is None:
             return Response({'detail': 'Teacher profile not found.'}, status=status.HTTP_404_NOT_FOUND)
@@ -217,23 +302,22 @@ class TeacherProfileView(APIView):
     def post(self, request):
         serializer = TeacherProfileSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user_id, email = request.user.supabase_user_id, request.user.email
-        if not email:
-            return Response({'detail': 'Supabase account does not include an email address.'}, status=status.HTTP_400_BAD_REQUEST)
-        name = serializer.validated_data.get('name') or request.user.claims.get('user_metadata', {}).get('name') or email.split('@')[0]
-        teacher = request.user.teacher or Teacher.objects.filter(supabase_user_id=user_id).first()
+        user = request.user
+        teacher = getattr(user, 'teacher', None) or Teacher.objects.filter(user=user).first()
+        name = serializer.validated_data.get('name') or user.first_name or user.email.split('@')[0]
         if teacher is None:
-            teacher = Teacher.objects.filter(email__iexact=email, supabase_user_id__isnull=True).first()
+            teacher = Teacher.objects.filter(email__iexact=user.email, user__isnull=True).first()
             if teacher:
-                teacher.supabase_user_id = user_id
+                teacher.user = user
                 teacher.name = name
-                teacher.save(update_fields=['supabase_user_id', 'name'])
+                teacher.save(update_fields=['user', 'name'])
             else:
-                teacher = Teacher.objects.create(supabase_user_id=user_id, email=email, name=name)
+                teacher = Teacher.objects.create(user=user, email=user.email, name=name)
         elif 'name' in serializer.validated_data:
             teacher.name = name
             teacher.save(update_fields=['name'])
-        request.user.teacher = teacher
+            user.first_name = name
+            user.save(update_fields=['first_name'])
         return Response(self._representation(teacher))
 
     patch = post
@@ -247,7 +331,6 @@ class TeacherProfileView(APIView):
         ).count()
         return {
             'teacher_id': teacher.teacher_id,
-            'supabase_user_id': str(teacher.supabase_user_id),
             'name': teacher.name,
             'email': teacher.email,
             'created_at': teacher.created_at,

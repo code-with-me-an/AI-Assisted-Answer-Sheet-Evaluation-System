@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
-import { supabase } from '../lib/supabase'
+import { auth } from '../lib/auth'
 import { PageLoader, ErrorState } from '../components/PageLoader'
 import '../style/Profile.css'
 
@@ -105,7 +105,6 @@ function Profile() {
     /* ---------- Profile Data ---------- */
     const [profile, setProfile] = useState({
         teacher_id: null,
-        supabase_user_id: '',
         name: '',
         email: '',
         created_at: null,
@@ -213,7 +212,7 @@ function Profile() {
 
         setPasswordSaving(true)
         try {
-            const { error } = await supabase.auth.updateUser({
+            const { error } = await auth.updateUser({
                 password: passwords.new,
             })
             if (error) {
@@ -352,7 +351,7 @@ function Profile() {
                                 placeholder="Teacher email"
                             />
                             <span className="hint">
-                                Email is managed and authenticated securely via Supabase Auth.
+                                Email is managed and authenticated securely via your teacher account.
                             </span>
                         </div>
                     </div>
@@ -388,7 +387,7 @@ function Profile() {
                         <Icon name="lock" size={20} />
                         Change Password
                     </h3>
-                    <p>Update your password directly through Supabase Authentication.</p>
+                    <p>Update your teacher account password.</p>
                 </div>
 
                 <form onSubmit={handleUpdatePassword}>
@@ -451,14 +450,14 @@ function Profile() {
                         <Icon name="shield" size={20} />
                         Security Information
                     </h3>
-                    <p>Your authentication is secured by Supabase Auth with JWT bearer tokens.</p>
+                    <p>Your authentication is secured with token authentication.</p>
                 </div>
 
                 <div className="toggle-row">
                     <div className="toggle-row-info">
-                        <h4>Supabase User ID</h4>
+                        <h4>Teacher ID</h4>
                         <p style={{ fontFamily: 'monospace', fontSize: '13px', color: 'var(--g700)' }}>
-                            {profile.supabase_user_id || 'Connected'}
+                            {profile.teacher_id ? `#${profile.teacher_id}` : 'Connected'}
                         </p>
                     </div>
                 </div>
@@ -466,7 +465,7 @@ function Profile() {
                 <div className="toggle-row">
                     <div className="toggle-row-info">
                         <h4>Token Authentication</h4>
-                        <p>All REST API requests to Django are signed with your Supabase JWT.</p>
+                        <p>All REST API requests to Django are authenticated with your auth token.</p>
                     </div>
                     <span className="current-badge">Active</span>
                 </div>

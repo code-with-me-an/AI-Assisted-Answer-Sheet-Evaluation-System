@@ -1,11 +1,5 @@
 # AI-Assisted Answer Sheet Evaluation System
 
-> **Current infrastructure:** Supabase Auth and Supabase PostgreSQL are the
-> production architecture. Django connects directly to Supabase through
-> `DATABASE_URL`; Docker Compose contains only frontend and backend services.
-> The legacy local-PostgreSQL references below are superseded by the concise
-> [Supabase setup guide](docs/SUPABASE_SETUP.md).
-
 An AI-assisted system for evaluating student answer sheets efficiently and consistently.
 
 This README is intended for **team development**. It explains how to set up the project, run it with Docker, work on frontend/backend features, manage dependencies, use Git, and avoid environment-related issues between team members.
@@ -21,7 +15,7 @@ The system consists of:
 * A React frontend for the user interface
 * A Django backend for APIs and business logic
 * PostgreSQL for persistent application data
-* Supabase Authentication for user authentication
+* Django Native Authentication & DRF Token Authentication for user authentication
 * Docker and Docker Compose for a consistent development environment
 
 ---
@@ -33,7 +27,7 @@ The system consists of:
 | Frontend         | React + Vite                   |
 | Backend          | Django + Django REST Framework |
 | Database         | PostgreSQL 16                  |
-| Authentication   | Supabase Authentication        |
+| Authentication   | Django REST Authentication     |
 | Containerization | Docker + Docker Compose        |
 | Version Control  | Git + GitHub                   |
 
@@ -72,7 +66,7 @@ The system consists of:
 
 ### Authentication
 
-Supabase Authentication is used as part of the login/authentication workflow.
+Local Django REST Authentication is used for user authentication and authorization.
 
 ```text
 Browser
@@ -80,21 +74,13 @@ Browser
    ▼
 React Frontend
    │
-   │ Authentication
+   │ API Requests (Bearer Token)
    ▼
-Supabase Authentication
-
-React Frontend
-   │
-   │ Application API Requests
-   ▼
-Django Backend
+Django Backend (DRF Token Authentication)
    │
    ▼
-PostgreSQL
+PostgreSQL Database
 ```
-
-The exact authentication-to-Django authorization flow should follow the implementation currently present in the project.
 
 ---
 
@@ -368,10 +354,10 @@ and:
 frontend/package-lock.json
 ```
 
-For example, Supabase:
+For example:
 
 ```json
-"@supabase/supabase-js": "..."
+"react-router-dom": "^7.18.4"
 ```
 
 Do **not** depend on manually installing packages inside a running Docker container as the normal team workflow.
@@ -429,42 +415,39 @@ docker compose up --build -d
 
 ---
 
-# 10. Supabase Authentication
+# 10. Local Authentication
 
-The frontend uses the Supabase JavaScript client.
+The frontend communicates with Django native authentication endpoints.
 
-The Supabase client is initialized from:
+The authentication helper is initialized from:
 
 ```text
-src/lib/supabase.js
+src/lib/auth.js
 ```
 
 The application uses environment variables such as:
 
 ```text
-VITE_SUPABASE_URL
-VITE_SUPABASE_PUBLISHABLE_KEY
+VITE_API_URL
 ```
 
 These values should **not be hard-coded into source code**.
 
 Use the project's environment configuration approach for development.
 
-Never commit private secrets, service-role keys, database passwords, or other sensitive credentials to GitHub.
+Never commit private secrets, database passwords, or other sensitive credentials to GitHub.
 
 ---
 
 # 11. Environment Variables
 
-Environment variables may be required for:
+Environment variables are configured for:
 
-* Supabase
 * Django
 * PostgreSQL
 * API configuration
-* other external services
 
-Before running the project, make sure the required environment variables are configured according to the current Docker Compose configuration.
+Before running the project, make sure the required environment variables are configured in `.env` (or derived from `.env.example`).
 
 Do not commit secret environment files to GitHub.
 
@@ -485,11 +468,12 @@ Only commit example configuration files when appropriate:
 Example:
 
 ```text
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+DATABASE_URL=postgresql://autograde:autograde_dev_password@db:5432/autograde
+DJANGO_SECRET_KEY=your_secret_key
+VITE_API_URL=http://localhost:8000
 ```
 
-Never put real credentials in `.env.example`.
+Never put real production credentials in `.env.example`.
 
 ---
 
@@ -767,7 +751,7 @@ Use clear commit messages.
 Examples:
 
 ```text
-Add Supabase authentication
+Add local authentication
 Fix login page
 Add exam creation API
 Add student dashboard
@@ -846,7 +830,7 @@ Then commit and push.
 Example:
 
 ```text
-Failed to resolve import "@supabase/supabase-js"
+Failed to resolve import "react-router-dom"
 ```
 
 First make sure the dependency exists in:

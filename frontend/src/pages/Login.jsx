@@ -108,7 +108,7 @@ function Login({ onLogin }) {
             <main className="login-main">
                 <section className="login-card">
                     <div className="login-card-header">
-                        <h1>{isSignup ? 'Create your account' : 'Welcome back'}</h1>
+                        <h1>{isSignup ? 'Create your account' : 'Welcome'}</h1>
 
                         <p>
                             {isSignup ? 'Start using your teaching workspace.' : 'Sign in to your teaching workspace and continue evaluating.'}

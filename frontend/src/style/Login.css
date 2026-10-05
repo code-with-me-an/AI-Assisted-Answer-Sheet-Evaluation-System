@@ -149,6 +149,7 @@
 }
 
 .forgot-password {
+    display: none;
     border: none;
     background: none;
     padding: 0;

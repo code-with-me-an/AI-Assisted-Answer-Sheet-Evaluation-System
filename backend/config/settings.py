@@ -165,4 +165,5 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'evaluation.authentication.SupabaseJWTAuthentication',
     ],
+    'UNAUTHENTICATED_USER': None,
 }

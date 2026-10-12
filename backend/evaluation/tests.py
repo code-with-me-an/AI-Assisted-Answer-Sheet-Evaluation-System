@@ -57,6 +57,14 @@ class AutoGradePhase1BackendTests(TestCase):
         eval_poor = evaluate_answer(reference_answer=ref, student_answer=stu_poor, max_marks=10.0)
         self.assertLess(eval_poor['awarded_marks'], 6.0)
 
+    def test_missing_or_invalid_token_returns_401(self):
+        anonymous = APIClient()
+        self.assertEqual(anonymous.get('/api/dashboard/').status_code, 401)
+
+        bad_token = APIClient()
+        bad_token.credentials(HTTP_AUTHORIZATION='Bearer not.a.token')
+        self.assertEqual(bad_token.get('/api/dashboard/').status_code, 401)
+
     def test_teacher_profile_sync(self):
         res = self.client_a.get('/api/auth/profile/')
         self.assertEqual(res.status_code, 200)

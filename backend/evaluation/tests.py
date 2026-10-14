@@ -65,6 +65,44 @@ class AutoGradePhase1BackendTests(TestCase):
         bad_token.credentials(HTTP_AUTHORIZATION='Bearer not.a.token')
         self.assertEqual(bad_token.get('/api/dashboard/').status_code, 401)
 
+    def _token_with(self, secret=None, algorithm='HS256', **overrides):
+        claims = {
+            'sub': str(uuid4()),
+            'email': 'attacker@example.com',
+            'aud': 'authenticated',
+            'iss': 'https://example.supabase.co/auth/v1',
+            'exp': datetime.now(timezone.utc) + timedelta(minutes=15),
+        }
+        claims.update(overrides)
+        return jwt.encode(claims, secret, algorithm=algorithm)
+
+    def _status_with_token(self, token):
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        return client.get('/api/dashboard/').status_code
+
+    @override_settings(DEBUG=True, SUPABASE_JWT_SECRET='')
+    def test_forged_token_rejected_even_when_debug_is_on(self):
+        forged = self._token_with('some-attacker-secret-some-attacker-secret')
+        self.assertEqual(self._status_with_token(forged), 401)
+
+    @override_settings(DEBUG=True, SUPABASE_JWKS_URL='http://127.0.0.1:9/jwks.json')
+    def test_forged_asymmetric_token_rejected_when_jwks_unreachable(self):
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        forged = self._token_with(key, algorithm='RS256')
+        self.assertEqual(self._status_with_token(forged), 401)
+
+    def test_unsigned_token_rejected(self):
+        self.assertEqual(self._status_with_token(self._token_with(None, algorithm='none')), 401)
+
+    def test_wrong_audience_or_issuer_rejected(self):
+        secret = 'test-only-jwt-secret-with-at-least-32-bytes'
+        self.assertEqual(self._status_with_token(self._token_with(secret, aud='anon')), 401)
+        self.assertEqual(
+            self._status_with_token(self._token_with(secret, iss='https://evil.example/auth/v1')), 401
+        )
+
     def test_teacher_profile_sync(self):
         res = self.client_a.get('/api/auth/profile/')
         self.assertEqual(res.status_code, 200)

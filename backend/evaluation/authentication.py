@@ -62,44 +62,34 @@ class SupabaseJWTAuthentication(authentication.BaseAuthentication):
         return f'Bearer realm="{self.www_authenticate_realm}"'
 
     def _decode_token(self, token):
-        algorithm = jwt.get_unverified_header(token).get('alg', 'HS256')
-        if algorithm not in {'HS256', 'HS384', 'HS512', 'RS256', 'RS384', 'RS512', 'ES256', 'ES384', 'ES512'}:
-            raise exceptions.AuthenticationFailed('Invalid token algorithm.')
+        algorithm = jwt.get_unverified_header(token).get('alg')
+        issuer = settings.SUPABASE_JWT_ISSUER
+        audience = settings.SUPABASE_JWT_AUDIENCE
+        if not issuer or not audience:
+            raise exceptions.AuthenticationFailed('Supabase JWT verification is not configured.')
 
-        # Extract unverified payload to check claims
-        unverified_payload = jwt.decode(token, options={'verify_signature': False})
-        if 'sub' not in unverified_payload:
-            raise exceptions.AuthenticationFailed('Invalid token payload.')
-
-        decode_options = {
-            'algorithms': [algorithm],
-            'options': {
-                'verify_signature': True,
-                'verify_aud': False,
-                'verify_iss': False,
-            },
+        common = {
+            'audience': audience,
+            'issuer': issuer,
+            'options': {'require': ['exp', 'sub', 'aud', 'iss']},
         }
 
-        if algorithm and algorithm.startswith('HS'):
-            if settings.SUPABASE_JWT_SECRET:
-                return jwt.decode(token, settings.SUPABASE_JWT_SECRET, **decode_options)
-            elif getattr(settings, 'DEBUG', False):
-                # Fallback in local debug mode if secret not set
-                return unverified_payload
-            raise exceptions.AuthenticationFailed('Legacy JWT verification is not configured.')
+        # Legacy projects sign with a shared secret.
+        if algorithm == 'HS256':
+            if not settings.SUPABASE_JWT_SECRET:
+                raise exceptions.AuthenticationFailed('Legacy JWT verification is not configured.')
+            return jwt.decode(token, settings.SUPABASE_JWT_SECRET, algorithms=['HS256'], **common)
 
-        if settings.SUPABASE_JWKS_URL:
+        # Current projects sign with a private key; we verify with the public key set (JWKS).
+        if algorithm in ('ES256', 'RS256'):
+            if not settings.SUPABASE_JWKS_URL:
+                raise exceptions.AuthenticationFailed('Supabase JWT verification is not configured.')
             try:
                 if self.__class__._jwks_client is None:
                     self.__class__._jwks_client = PyJWKClient(settings.SUPABASE_JWKS_URL)
                 signing_key = self.__class__._jwks_client.get_signing_key_from_jwt(token).key
-                return jwt.decode(token, signing_key, **decode_options)
-            except Exception:
-                if getattr(settings, 'DEBUG', False):
-                    return unverified_payload
-                raise exceptions.AuthenticationFailed('Unable to verify token signature via JWKS.')
+            except jwt.PyJWKClientError:
+                raise exceptions.AuthenticationFailed('Unable to fetch the token signing key.')
+            return jwt.decode(token, signing_key, algorithms=['ES256', 'RS256'], **common)
 
-        if getattr(settings, 'DEBUG', False):
-            return unverified_payload
-
-        raise exceptions.AuthenticationFailed('Supabase JWT verification is not configured.')
+        raise exceptions.AuthenticationFailed('Unsupported token algorithm.')

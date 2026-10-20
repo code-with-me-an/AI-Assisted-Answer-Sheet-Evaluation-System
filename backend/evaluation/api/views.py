@@ -8,6 +8,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.throttling import ScopedRateThrottle, UserRateThrottle
 
 from ..models import (
     Evaluation, Examination, ExamStudent, Question,
@@ -56,6 +57,8 @@ class TeacherRequiredAPIView(APIView):
 
 class GenerateCandidateFactsView(TeacherRequiredAPIView):
     """Generate candidate atomic reference facts from a reference answer text."""
+    throttle_classes = [UserRateThrottle, ScopedRateThrottle]
+    throttle_scope = 'grading'
 
     def post(self, request):
         serializer = GenerateFactsRequestSerializer(data=request.data)
@@ -176,6 +179,8 @@ class ReferenceAnswerApproveFactsView(TeacherRequiredAPIView):
 
 class EvaluationView(TeacherRequiredAPIView):
     """Payload validation endpoint for ASAG evaluate request."""
+    throttle_classes = [UserRateThrottle, ScopedRateThrottle]
+    throttle_scope = 'grading'
 
     def post(self, request):
         serializer = EvaluationRequestSerializer(data=request.data)
@@ -768,6 +773,9 @@ class StudentDetailView(TeacherRequiredAPIView):
 
 
 class ExamEvaluationView(TeacherRequiredAPIView):
+    throttle_classes = [UserRateThrottle, ScopedRateThrottle]
+    throttle_scope = 'grading'
+
     @transaction.atomic
     def post(self, request, examination_id):
         serializer = EvaluationCreateSerializer(data=request.data)

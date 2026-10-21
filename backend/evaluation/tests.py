@@ -100,8 +100,21 @@ class AutoGradePhase1BackendTests(TestCase):
         secret = 'test-only-jwt-secret-with-at-least-32-bytes'
         self.assertEqual(self._status_with_token(self._token_with(secret, aud='anon')), 401)
         self.assertEqual(
-            self._status_with_token(self._token_with(secret, iss='https://evil.example/auth/v1')), 401
-        )
+            self._status_with_token(self._token_with(secret, iss='https://evil.example/auth/v1')), 401)
+
+    def test_grading_endpoints_are_rate_limited(self):
+        from unittest.mock import patch
+        from django.core.cache import cache
+        from rest_framework.throttling import ScopedRateThrottle
+
+        cache.clear()
+        with patch.dict(ScopedRateThrottle.THROTTLE_RATES, {'grading': '2/min'}):
+            codes = [
+                self.client_a.post('/api/evaluate/', {}, format='json').status_code
+                for _ in range(3)
+            ]
+        self.assertNotEqual(codes[0], 429)
+        self.assertEqual(codes[-1], 429)
 
     def test_teacher_profile_sync(self):
         res = self.client_a.get('/api/auth/profile/')

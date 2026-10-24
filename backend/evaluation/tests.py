@@ -116,6 +116,36 @@ class AutoGradePhase1BackendTests(TestCase):
         self.assertNotEqual(codes[0], 429)
         self.assertEqual(codes[-1], 429)
 
+    def test_finalized_exam_cannot_be_overwritten_through_draft_id(self):
+        payload = {
+            'exam_name': 'Final Exam',
+            'subject': 'Biology',
+            'exam_date': '2026-10-24',
+            'questions': [
+                {
+                    'question_number': 1,
+                    'question_text': 'What is mitosis?',
+                    'max_marks': '5.00',
+                    'question_type': 'descriptive',
+                    'reference_answer': 'Mitosis is a process of cell division.',
+                },
+            ],
+            'students': [
+                {'full_name': 'John Doe', 'roll_number': 'STU001', 'email': 'john@example.com'},
+            ],
+        }
+        created = self.client_a.post('/api/exams/', payload, format='json')
+        self.assertEqual(created.status_code, 201)
+        exam_id = created.data['examination_id']
+        question_pk = Examination.objects.get(examination_id=exam_id).questions.get().pk
+
+        res = self.client_a.post('/api/exams/', dict(payload, draft_id=exam_id), format='json')
+
+        self.assertEqual(res.status_code, 404)
+        exam = Examination.objects.get(examination_id=exam_id)
+        self.assertTrue(exam.questions.filter(pk=question_pk).exists())
+        self.assertEqual(exam.assignments.count(), 1)
+
     def test_teacher_profile_sync(self):
         res = self.client_a.get('/api/auth/profile/')
         self.assertEqual(res.status_code, 200)

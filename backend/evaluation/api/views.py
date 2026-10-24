@@ -393,7 +393,7 @@ class ExaminationListCreateView(TeacherRequiredAPIView):
         is_draft = data.get('is_draft', False)
 
         if draft_id:
-            exam = Examination.objects.filter(examination_id=draft_id, teacher=teacher).first()
+            exam = Examination.objects.filter(examination_id=draft_id, teacher=teacher, is_draft=True,).first()
             if not exam:
                 raise NotFound('Draft exam not found.')
             exam.exam_name = data['exam_name']
